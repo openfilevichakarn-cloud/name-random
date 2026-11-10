@@ -1,0 +1,19 @@
+{
+  "name": "NEXT-GEN STUDENT RANDOMIZER",
+  "short_name": "Randomizer",
+  "description": "ระบบสุ่มชื่อนักเรียนสไตล์เกมสำหรับห้องเรียนยุคใหม่",
+  "lang": "th",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B1020",
+  "theme_color": "#0B1020",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
