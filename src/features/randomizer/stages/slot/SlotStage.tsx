@@ -104,7 +104,7 @@ function ReelCell({ kind, item }: { kind: ReelKind; item: ReelItem }) {
     return item.avatar ? (
       <StudentAvatar avatar={item.avatar} seed={item.seed} className="size-[62%] max-h-[78%] w-auto aspect-square" />
     ) : (
-      <span className="text-[14cqh] font-extrabold text-neon-violet">?</span>
+      <span className="text-[17cqh] font-extrabold text-neon-violet">?</span>
     )
   }
   if (kind === 'name') {
@@ -112,7 +112,7 @@ function ReelCell({ kind, item }: { kind: ReelKind; item: ReelItem }) {
     return (
       <span
         className="max-w-full truncate px-[1.5cqw] font-extrabold"
-        style={{ fontSize: `min(11cqh, ${(70 / length).toFixed(2)}cqw)` }}
+        style={{ fontSize: `min(14cqh, ${(70 / length).toFixed(2)}cqw)` }}
       >
         {item.text}
       </span>
@@ -122,11 +122,11 @@ function ReelCell({ kind, item }: { kind: ReelKind; item: ReelItem }) {
     return (
       <span className="flex flex-col items-center leading-none">
         <span className="hud-label text-[max(0.55rem,2.2cqh)] text-neon-cyan">เลขที่</span>
-        <span className="tabular mt-[1cqh] text-[13cqh] font-extrabold text-neon-cyan">{item.text}</span>
+        <span className="tabular mt-[1cqh] text-[16cqh] font-extrabold text-neon-cyan">{item.text}</span>
       </span>
     )
   }
-  return <span className="tabular text-[20cqh] font-extrabold text-neon-gold">{item.text}</span>
+  return <span className="tabular text-[26cqh] font-extrabold text-neon-gold">{item.text}</span>
 }
 
 /**
@@ -281,7 +281,7 @@ export function SlotStage({ candidates, phase, run, timeScale, ambient, onSettle
               <div
                 key={reelIndex}
                 className={cn(
-                  'relative h-[34cqh] min-h-24 overflow-hidden rounded-2xl border bg-ink/85 transition-[border-color,box-shadow] duration-300',
+                  'relative h-[44cqh] min-h-24 overflow-hidden rounded-2xl border bg-ink/85 transition-[border-color,box-shadow] duration-300',
                   landed && builtFor
                     ? 'border-neon-gold/70 shadow-[0_0_24px_-6px_var(--neon-gold)]'
                     : 'border-border',

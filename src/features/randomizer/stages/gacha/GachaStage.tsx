@@ -32,12 +32,17 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
   const flashRef = useRef<HTMLSpanElement>(null)
   const timelineRef = useRef<gsap.core.Timeline | null>(null)
   const wobbleRef = useRef<gsap.core.Tween | null>(null)
-  const latest = useLatest({ timeScale, onSettled })
   const [capsuleColor, setCapsuleColor] = useState<string>(STAGE_COLORS[0])
 
   const busy = phase !== 'idle'
-  const machineHeight = Math.floor(Math.min(box.height, box.width / MACHINE_ASPECT))
-  const capsuleSize = Math.max(28, machineHeight * 0.11)
+  // Leave a little room around the machine for its glow.
+  const machineHeight = Math.floor(Math.min(box.height * 0.96, (box.width * 0.96) / MACHINE_ASPECT))
+  /** Size of the capsule while it sits in the tray. */
+  const traySize = Math.max(28, machineHeight * 0.11)
+  /** Size of the capsule once it has come to the front. It is laid out at this size and scaled down. */
+  const frontSize = Math.max(96, Math.min(box.width, box.height) * 0.42)
+  const trayScale = traySize / frontSize
+  const latest = useLatest({ timeScale, onSettled, traySize, trayScale })
 
   // Physics toy lifecycle.
   useEffect(() => {
@@ -64,9 +69,9 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
     if (phase !== 'idle') return
     wobbleRef.current?.kill()
     const capsule = capsuleRef.current
-    if (capsule) gsap.set(capsule, { autoAlpha: 0, x: 0, y: 0, scale: 1, rotation: 0 })
+    if (capsule) gsap.set(capsule, { autoAlpha: 0, x: 0, y: 0, scale: trayScale, rotation: 0 })
     gsap.set([topHalfRef.current, bottomHalfRef.current], { x: 0, y: 0, rotation: 0, autoAlpha: 1 })
-  }, [phase])
+  }, [phase, trayScale])
 
   const runKey = run?.key
   useEffect(() => {
@@ -81,11 +86,11 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
       return
     }
 
-    const scale = latest.current.timeScale
+    const { timeScale: scale, traySize: tray, trayScale: small } = latest.current
     const stir = (run.quick ? 0.9 : 1.7) * scale
     wobbleRef.current?.kill()
     gsap.set([topHalfRef.current, bottomHalfRef.current], { x: 0, y: 0, rotation: 0, autoAlpha: 1 })
-    gsap.set(capsule, { autoAlpha: 0, x: 0, y: 0, scale: 1, rotation: 0 })
+    gsap.set(capsule, { autoAlpha: 0, x: 0, y: 0, scale: small, rotation: 0 })
 
     const timeline = gsap.timeline({
       onComplete: () => {
@@ -119,7 +124,7 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
     // Drop into the tray…
     timeline.fromTo(
       capsule,
-      { autoAlpha: 1, y: -capsuleSize * 1.3 },
+      { autoAlpha: 1, y: -tray * 1.3 },
       { y: 0, duration: 0.5 * Math.min(1, scale), ease: 'bounce.out' },
       stir,
     )
@@ -135,7 +140,7 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
         const chuteBox = chute.getBoundingClientRect()
         return rootBox.top + rootBox.height * 0.46 - (chuteBox.top + chuteBox.height / 2)
       },
-      scale: () => Math.max(2.2, (Math.min(root.clientWidth, root.clientHeight) * 0.42) / capsuleSize),
+      scale: 1,
       rotation: 360,
       duration: 0.6 * scale,
       ease: 'power2.inOut',
@@ -159,7 +164,6 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
     const capsule = capsuleRef.current
     if (!capsule) return
     gsap.set(capsule, { rotation: 0 })
-    playSfx('reveal')
     const open = gsap.timeline()
     open.to(topHalfRef.current, { y: '-70%', rotation: -28, autoAlpha: 0, duration: 0.4, ease: 'power2.out' }, 0)
     open.to(bottomHalfRef.current, { y: '55%', rotation: 14, autoAlpha: 0, duration: 0.4, ease: 'power2.out' }, 0)
@@ -175,7 +179,7 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
         rootRef.current = node
         boxRef(node)
       }}
-      className="relative flex size-full items-end justify-center"
+      className="relative flex size-full items-center justify-center"
     >
       <div
         ref={machineRef}
@@ -213,9 +217,11 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
               'border-2 border-white/40 bg-[radial-gradient(circle_at_30%_25%,#fde68a,var(--neon-gold)_50%,#b45309)]',
               'shadow-[0_0_24px_-4px_var(--neon-gold)] outline-none transition-transform duration-200',
               'enabled:hover:scale-110 enabled:active:scale-95 focus-visible:ring-4 focus-visible:ring-neon-cyan disabled:cursor-default',
-              ambient && !busy && 'animate-glow-pulse',
             )}
           >
+            {ambient && !busy ? (
+              <span aria-hidden className="pointer-events-none absolute -inset-[12%] animate-ring-out rounded-full border-2 border-neon-gold" />
+            ) : null}
             <span ref={knobRef} className="block h-[16%] w-[72%] rounded-full bg-ink/80" />
           </button>
 
@@ -227,20 +233,21 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
             <div
               ref={capsuleRef}
               aria-hidden
-              className="invisible relative will-change-transform"
-              style={{ width: capsuleSize, height: capsuleSize }}
+              className="invisible absolute top-1/2 left-1/2 will-change-transform"
+              style={{ width: frontSize, height: frontSize, margin: -frontSize / 2 }}
             >
               <span ref={flashRef} className="invisible absolute inset-0 rounded-full bg-white blur-md" />
               <span
                 ref={bottomHalfRef}
-                className="absolute inset-x-0 bottom-0 h-1/2 rounded-b-full border border-ink/40 bg-[#E7EBFA]"
+                className="absolute inset-x-0 bottom-0 h-1/2 rounded-b-full border-2 border-ink/40 bg-[linear-gradient(180deg,#E7EBFA,#B9C2E6)]"
               />
               <span
                 ref={topHalfRef}
-                className="absolute inset-x-0 top-0 h-1/2 rounded-t-full border border-ink/40"
-                style={{ backgroundColor: capsuleColor, boxShadow: `0 0 18px -2px ${capsuleColor}` }}
+                className="absolute inset-x-0 top-0 h-1/2 rounded-t-full border-2 border-ink/40"
+                style={{ backgroundColor: capsuleColor, boxShadow: `0 0 40px -6px ${capsuleColor}` }}
               >
                 <span className="absolute top-[22%] left-[18%] h-[26%] w-[20%] rounded-full bg-white/60" />
+                <span className="absolute inset-x-0 bottom-0 h-[10%] bg-ink/30" />
               </span>
             </div>
           </div>

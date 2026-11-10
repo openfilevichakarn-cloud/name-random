@@ -147,7 +147,6 @@ export function CountdownStage({ candidates, phase, run, timeScale, ambient, sec
             strokeLinecap="round"
             strokeDasharray={RING_LENGTH}
             className="transition-[stroke] duration-200"
-            style={{ filter: 'drop-shadow(0 0 4px currentColor)' }}
           />
         </svg>
         <span

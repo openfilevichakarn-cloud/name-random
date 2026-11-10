@@ -174,7 +174,7 @@ export function CardStage({
     timeline.to(node, { rotation: 0, duration: 0.06 })
     timeline.call(() => {
       setSuspenseKey(null)
-      playSfx('reveal')
+      playSfx('tick', { rate: 0.7 })
     })
     // Hold for the CSS flip, then settle back into the grid.
     timeline.to(node, { scale: 1, duration: 0.2, ease: 'power2.inOut' }, `+=${FLIP_SECONDS}`)

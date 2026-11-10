@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  Dices,
   EllipsisVertical,
   FlaskConical,
   Pencil,
@@ -36,6 +37,8 @@ import { StudentFormDialog } from '@/features/students/components/StudentFormDia
 import { StudentTable, type StudentSort } from '@/features/students/components/StudentTable'
 import { compareStudents, getFullName, matchesStudent } from '@/features/students/lib/names'
 import { useClassroom, useClassroomStudents, useDataStore } from '@/stores/dataStore'
+import { useSettingsStore } from '@/stores/settingsStore'
+import { poolKey, useStudioStore } from '@/stores/studioStore'
 
 type PendingDelete =
   | { kind: 'student'; student: Student }
@@ -94,6 +97,23 @@ function ClassroomDetail({ classroom }: ClassroomDetailProps) {
   const openAdd = () => {
     setEditingStudent(undefined)
     setStudentFormOpen(true)
+  }
+
+  /** Open the studio on this classroom. With `onlyIds`, everyone else is taken out of the pool. */
+  const openStudio = (onlyIds?: ID[]) => {
+    const studio = useStudioStore.getState()
+    studio.setClassroom(classroom.id)
+    studio.setSource('students')
+    if (onlyIds) {
+      const { numberMin, numberMax } = useSettingsStore.getState().settings.rules
+      const key = poolKey(classroom.id, 'students', numberMin, numberMax)
+      studio.restrictTo(
+        key,
+        students.map((student) => student.id),
+        onlyIds,
+      )
+    }
+    void navigate('/studio')
   }
 
   const meta = [
@@ -164,6 +184,10 @@ function ClassroomDetail({ classroom }: ClassroomDetailProps) {
         description={meta}
         actions={
           <>
+            <Button variant="neon" onClick={() => openStudio()} disabled={students.length === 0}>
+              <Dices aria-hidden />
+              สุ่มห้องนี้
+            </Button>
             <Button onClick={openAdd}>
               <UserPlus aria-hidden />
               เพิ่มนักเรียน
@@ -240,6 +264,10 @@ function ClassroomDetail({ classroom }: ClassroomDetailProps) {
                   role="status"
                 >
                   <span className="text-sm font-semibold text-neon-cyan">เลือก {selectedStudents.length} คน</span>
+                  <Button size="sm" onClick={() => openStudio(selectedStudents.map((student) => student.id))}>
+                    <Dices aria-hidden />
+                    สุ่มเฉพาะกลุ่มนี้
+                  </Button>
                   <Button
                     variant="destructive"
                     size="sm"

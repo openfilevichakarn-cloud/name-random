@@ -6,6 +6,8 @@ import { describeError } from '@/data/repository'
 import type { Classroom, ClassroomInput, ID, Student, StudentInput, StudentPatch } from '@/data/types'
 import { compareStudents } from '@/features/students/lib/names'
 
+import { useStudioStore } from './studioStore'
+
 export type LoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 interface DataState {
@@ -83,6 +85,8 @@ export const useDataStore = create<DataState>()((set, get) => {
 
     deleteClassroom: async (id) => {
       await getRepository().deleteClassroom(id)
+      // The studio keeps round state per classroom; drop it together with the classroom.
+      useStudioStore.getState().forgetClassroom(id)
       set((state) => ({
         classrooms: state.classrooms.filter((item) => item.id !== id),
         students: state.students.filter((student) => student.classroomId !== id),
