@@ -7,6 +7,7 @@ import { RouteError } from './RouteError'
 // Route-level code splitting: each page (and its heavy dependencies) loads on demand.
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const ClassroomsPage = lazy(() => import('@/pages/ClassroomsPage'))
+const ClassroomDetailPage = lazy(() => import('@/pages/ClassroomDetailPage'))
 const StudioPage = lazy(() => import('@/pages/StudioPage'))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'classrooms', element: <ClassroomsPage /> },
+      { path: 'classrooms/:classroomId', element: <ClassroomDetailPage /> },
       { path: 'studio', element: <StudioPage /> },
       { path: 'history', element: <HistoryPage /> },
       { path: 'settings', element: <SettingsPage /> },

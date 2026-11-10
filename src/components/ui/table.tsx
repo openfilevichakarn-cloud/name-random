@@ -34,7 +34,7 @@ function TableHead({ className, ...props }: ComponentProps<'th'>) {
   return (
     <th
       className={cn(
-        'hud-label h-11 px-3 text-left align-middle font-semibold whitespace-nowrap text-muted-foreground',
+        'hud-label h-11 px-2 text-left align-middle font-semibold whitespace-nowrap text-muted-foreground sm:px-3',
         className,
       )}
       {...props}
@@ -43,7 +43,7 @@ function TableHead({ className, ...props }: ComponentProps<'th'>) {
 }
 
 function TableCell({ className, ...props }: ComponentProps<'td'>) {
-  return <td className={cn('px-3 py-2.5 align-middle', className)} {...props} />
+  return <td className={cn('px-2 py-2.5 align-middle sm:px-3', className)} {...props} />
 }
 
 export { Table, TableBody, TableCell, TableHead, TableHeader, TableRow }
