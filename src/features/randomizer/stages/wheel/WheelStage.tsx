@@ -190,7 +190,8 @@ export function WheelStage({ candidates, phase, run, timeScale, ambient, onSettl
             type="button"
             onClick={onActivate}
             disabled={busy || candidates.length === 0}
-            aria-label="หมุนวงล้อ"
+            // The name starts with the visible text, so voice control ("click SPIN") finds it.
+            aria-label="SPIN หมุนวงล้อ"
             className={cn(
               'absolute top-1/2 left-1/2 flex size-[19%] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full',
               'bg-[radial-gradient(circle_at_30%_25%,#c4b5fd,var(--neon-violet)_45%,#4c1d95)] font-extrabold tracking-widest text-white',

@@ -18,6 +18,7 @@
     "import/no-cycle": "error",
     "import/no-unassigned-import": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
+    "jsx-a11y/no-noninteractive-tabindex": ["error", { "roles": ["tabpanel", "region"] }],
     "no-console": ["warn", { "allow": ["warn", "error"] }],
     "eqeqeq": ["error", "smart"]
   },
@@ -29,5 +30,5 @@
       }
     }
   ],
-  "ignorePatterns": ["dist", "node_modules", "playwright-report", "test-results", "coverage"]
+  "ignorePatterns": ["dist", "dist-e2e-cloud", "node_modules", "playwright-report", "test-results", "coverage"]
 }

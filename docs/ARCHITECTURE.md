@@ -130,12 +130,15 @@
 ## 4. Folder Structure
 
 ```
-├─ docs/ARCHITECTURE.md
-├─ e2e/                         Playwright end-to-end tests
+├─ .github/workflows/ci.yml     CI: typecheck, lint, unit, build, RLS, e2e
+├─ build/                       build-time helpers (Content-Security-Policy)
+├─ docs/                        ARCHITECTURE.md, SUPABASE.md
+├─ e2e/                         Playwright end-to-end + accessibility tests
 ├─ supabase/
-│  ├─ migrations/               schema + RLS
+│  ├─ migrations/               schema + RLS, class ranking
 │  └─ tests/                    ทดสอบ RLS ด้วย SQL
-├─ public/                      favicon, _redirects (SPA fallback)
+├─ public/                      favicon, manifest, _redirects (SPA fallback), _headers (Cloudflare)
+├─ vercel.json                  Vercel: rewrites + headers
 └─ src/
    ├─ main.tsx                  entry
    ├─ app/                      router, AppShell, providers, error boundary
@@ -297,8 +300,19 @@ MusicEngine (step sequencer บน Web Audio แบบสด) ──────
 | Unit | Vitest | random engine (ความสม่ำเสมอ, ไม่ซ้ำ, กติกา), extras (deck, โอกาสรางวัล, streak), Team Battle, ranking, validation, import/export, repository (fake-indexeddb + fake fetch), WAV encoder |
 | Database | psql + สคริปต์ SQL | migration ใช้ได้จริง, RLS กันข้ามโรงเรียน |
 | E2E | Playwright (desktop + mobile + cloud) | CRUD ห้อง/นักเรียน, import, สุ่มทั้ง 5 โหมด, ไม่ซ้ำจนครบรอบ, ประวัติ, ตั้งค่า, บัญชีครู, ดาว/อันดับ, ภารกิจ/รางวัล/streak, Quiz, Team Battle |
+| Accessibility | axe-core ใน Playwright | ทุกหน้าหลัก + หน้าประกาศผล ไม่มีปัญหาระดับ serious/critical ตาม WCAG 2.1 A/AA (desktop + mobile) |
+| CI | GitHub Actions | typecheck, lint, unit, build, migration + RLS บน PostgreSQL 16, e2e ทั้งหมด |
 
-## 10. Roadmap
+## 10. Deployment & Security
+
+- Static SPA: `npm run build` → `dist/` ขึ้น Vercel (`vercel.json`) หรือ Cloudflare Pages (`public/_redirects`, `public/_headers`)
+- **CSP** ถูกฝังเป็น `<meta>` ตอน build โดย `build/csp.ts`: `script-src 'self'`, `object-src 'none'`, `connect-src` เฉพาะตัวแอป,
+  `blob:` (เสียง WAV) และ origin ของ Supabase จาก `VITE_SUPABASE_URL` — dev server ไม่ใส่ (HMR ต้องใช้ inline script)
+- Headers จากโฮสต์: `frame-ancestors 'none'`/`X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`
+  (ไม่ปิด fullscreen และ wake lock เพราะโหมดจอใหญ่ใช้), ไฟล์ใน `/assets/` cache แบบ immutable
+- Supabase โหลดแบบ dynamic import เฉพาะเมื่อมีการตั้งค่า, ใช้ publishable key เท่านั้น สิทธิ์จริงอยู่ที่ RLS
+
+## 11. Roadmap
 
 | Phase | ส่งมอบ | เกณฑ์ผ่าน |
 | --- | --- | --- |
