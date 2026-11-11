@@ -87,3 +87,73 @@ export async function importPastedNames(page: Page, names: string[]): Promise<vo
   await dialog.getByRole('button', { name: `นำเข้า ${names.length} คน` }).click()
   await expect(dialog).toBeHidden()
 }
+
+/** Create a classroom and fill it with students given as "ชื่อ นามสกุล". */
+export async function seedClassroom(page: Page, name: string, students: string[]): Promise<void> {
+  await createClassroom(page, name)
+  await importPastedNames(page, students)
+  await expect(page.getByRole('row')).toHaveCount(students.length + 1)
+}
+
+const MODE_NAMES = {
+  wheel: 'Lucky Wheel',
+  slot: 'Mystery Slot',
+  card: 'Mystery Card',
+  countdown: 'Countdown',
+  gacha: 'Gacha',
+} as const
+export type ModeName = keyof typeof MODE_NAMES
+
+/** Open the studio (the last classroom is preselected) and wait for the stage. */
+export async function openStudio(page: Page, mode: ModeName = 'wheel'): Promise<void> {
+  await page.goto('/studio')
+  await expect(page.getByTestId('stage')).toBeVisible()
+  if (mode !== 'wheel') await selectMode(page, mode)
+}
+
+export async function selectMode(page: Page, mode: ModeName): Promise<void> {
+  await page.getByRole('radio', { name: new RegExp(MODE_NAMES[mode]) }).click()
+}
+
+/** Current phase of the draw pipeline, read from the stage element. */
+export function stagePhase(page: Page) {
+  return page.getByTestId('stage')
+}
+
+interface DrawOptions {
+  /** Press "ข้าม" instead of waiting for the animation (default true). */
+  skip?: boolean
+}
+
+/** Run a single draw up to the winner screen and return the revealed name. The screen stays open. */
+export async function drawWinner(page: Page, { skip = true }: DrawOptions = {}): Promise<string> {
+  // A previous winner screen may still be fading out; never read a name from it.
+  await expect(page.getByTestId('winner-reveal')).toHaveCount(0)
+  await page.getByTestId('draw-button').click()
+  if (skip) await page.getByRole('button', { name: 'ข้าม' }).click()
+  await expect(stagePhase(page)).toHaveAttribute('data-phase', 'reveal', { timeout: 30_000 })
+  const name = await page.getByTestId('winner-name').innerText()
+  return name.trim()
+}
+
+export async function closeReveal(page: Page): Promise<void> {
+  await page.getByTestId('winner-reveal').getByRole('button', { name: 'ปิด' }).click()
+  await expect(stagePhase(page)).toHaveAttribute('data-phase', 'idle')
+  await expect(page.getByTestId('winner-reveal')).toHaveCount(0)
+}
+
+/** Make the participants / rules panel reachable (it lives in a sheet on narrow screens). */
+export async function openPanel(page: Page, tab: 'ผู้เข้าร่วม' | 'กติกา'): Promise<void> {
+  const trigger = page.getByRole('button', { name: 'ผู้เข้าร่วมและกติกา' })
+  if (await trigger.isVisible()) await trigger.click()
+  await page.getByRole('tab', { name: tab }).click()
+}
+
+/** Close the panel sheet again where there is one. */
+export async function closePanel(page: Page): Promise<void> {
+  const close = page.getByRole('button', { name: 'ปิดแผง' })
+  if (await close.isVisible()) {
+    await close.click()
+    await expect(close).toBeHidden()
+  }
+}

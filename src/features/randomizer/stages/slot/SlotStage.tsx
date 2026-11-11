@@ -294,9 +294,11 @@ export function SlotStage({ candidates, phase, run, timeScale, ambient, onSettle
                   className="absolute inset-x-0 top-0 will-change-transform"
                   style={{ height: `${length * 100}%` }}
                 >
-                  {reel.items.map((item) => (
+                  {reel.items.map((item, itemIndex) => (
                     <div
                       key={item.key}
+                      // Index 1 is the item the reel comes to rest on.
+                      data-testid={itemIndex === 1 ? `reel-result-${reel.kind}` : undefined}
                       className="flex items-center justify-center"
                       style={{ height: `${100 / length}%` }}
                     >

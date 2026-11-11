@@ -162,6 +162,7 @@ export function CountdownStage({ candidates, phase, run, timeScale, ambient, sec
       </div>
       <p
         ref={tickerRef}
+        data-testid="stage-result"
         className={cn(
           'flex h-[1.9em] w-full max-w-[92%] items-center justify-center truncate rounded-full border px-6 text-center font-bold',
           'text-[clamp(1.1rem,6cqmin,2.8rem)] transition-colors',

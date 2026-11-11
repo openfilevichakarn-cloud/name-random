@@ -29,6 +29,7 @@ import { DRAW_TYPE_LABELS, MODE_META } from '@/features/randomizer/lib/modes'
 import { getCardCapacity } from '@/features/randomizer/stages/card/cardLayout'
 import type { StageMode, StagePhase } from '@/features/randomizer/stages/types'
 import { useElementSize } from '@/hooks/useElementSize'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { getAnimationProfile, getDurationScale } from '@/lib/animation/levels'
 import { useClassroomStudents, useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
@@ -67,6 +68,8 @@ function Studio() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [confirmNewRound, setConfirmNewRound] = useState(false)
   const [stageRef, stageSize] = useElementSize<HTMLDivElement>()
+  // Matches Tailwind's `xl` breakpoint: the side panel sits beside the stage, otherwise it opens as a sheet.
+  const wide = useMediaQuery('(min-width: 80rem)')
 
   useEffect(() => {
     void loadHistory()
@@ -88,6 +91,9 @@ function Studio() {
     if (known(requestedClassroom)) {
       studio.setClassroom(requestedClassroom)
       studio.setSource('students')
+    } else if (requestedClassroom === NO_CLASSROOM) {
+      // "สุ่มตัวเลข" quick start: no roster, numbers only.
+      studio.setClassroom(null)
     }
     if (requestedMode && RANDOM_MODES.includes(requestedMode as RandomMode)) studio.setMode(requestedMode as RandomMode)
     if (requestedClassroom || requestedMode) setSearchParams({}, { replace: true })
@@ -418,7 +424,8 @@ function Studio() {
               </div>
             ) : null}
 
-            <AnimatePresence>
+            {/* One overlay at a time: the previous one finishes leaving before the next one enters. */}
+            <AnimatePresence mode="wait">
               {phase === 'ready' ? <ReadyBanner key="ready" reduced={animation.level === 'low'} /> : null}
               {phase === 'reveal' && current && plan ? (
                 <WinnerReveal
@@ -521,11 +528,12 @@ function Studio() {
           </div>
         </GlassCard>
 
-        <GlassCard className="hidden min-h-0 flex-col p-4 sm:p-4 xl:flex">{sidePanel}</GlassCard>
+        {wide ? <GlassCard className="flex min-h-0 flex-col p-4 sm:p-4">{sidePanel}</GlassCard> : null}
       </div>
 
-      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
-        <SheetContent side="bottom" className="h-[82dvh] xl:hidden">
+      {/* The panel is rendered once: beside the stage on wide screens, in a sheet everywhere else. */}
+      <Sheet open={panelOpen && !wide} onOpenChange={setPanelOpen}>
+        <SheetContent side="bottom" className="h-[82dvh]">
           <SheetHeader>
             <SheetTitle>ผู้เข้าร่วมและกติกา</SheetTitle>
             <SheetDescription>เลือกผู้เข้าร่วมและปรับกติกาการสุ่ม</SheetDescription>

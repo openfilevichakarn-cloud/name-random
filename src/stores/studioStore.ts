@@ -58,6 +58,8 @@ interface StudioState {
   resetRound: (key: string) => ID | null
   /** Drop the bookkeeping of a classroom that no longer exists. */
   forgetClassroom: (classroomId: ID) => void
+  /** Forget which history session each pool was writing to (after the history was cleared). */
+  detachSessions: () => void
   clearPools: () => void
 }
 
@@ -171,6 +173,13 @@ export const useStudioStore = create<StudioState>()(
             classroomId: state.classroomId === classroomId ? null : state.classroomId,
             pools: Object.fromEntries(
               Object.entries(state.pools).filter(([key]) => !key.startsWith(`${classroomId}|`)),
+            ),
+          })),
+
+        detachSessions: () =>
+          set((state) => ({
+            pools: Object.fromEntries(
+              Object.entries(state.pools).map(([key, pool]) => [key, { ...pool, sessionId: null, drawCount: 0 }]),
             ),
           })),
 

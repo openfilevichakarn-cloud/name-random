@@ -41,9 +41,13 @@ export function DrawSummary({ winners, clamped, reduced, canDrawAgain, onAgain, 
         <Trophy className="size-4" aria-hidden />
         Winners
       </p>
-      <h2 className="text-[clamp(1.4rem,6cqmin,3rem)] leading-tight font-extrabold" role="status" aria-live="assertive">
+      <h2 className="text-[clamp(1.4rem,6cqmin,3rem)] leading-tight font-extrabold">
         ผู้ถูกเลือก <span className="text-gradient-gold tabular">{winners.length}</span> คน
       </h2>
+      {/* Announce the outcome to screen readers without turning the heading into a live region. */}
+      <p className="sr-only" role="status" aria-live="assertive">
+        ผู้ถูกเลือก {winners.length} คน: {winners.map((winner) => winner.label).join(', ')}
+      </p>
       {clamped ? <p className="text-sm text-neon-gold">มีผู้เข้าร่วมเหลือน้อยกว่าจำนวนที่ตั้งไว้</p> : null}
 
       <ol className="flex w-full flex-wrap items-stretch justify-center gap-2.5">

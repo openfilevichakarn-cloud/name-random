@@ -214,6 +214,7 @@ export function WheelStage({ candidates, phase, run, timeScale, ambient, onSettl
       <p
         ref={readoutRef}
         aria-hidden
+        data-testid="stage-result"
         className={cn(
           'flex h-[1.7em] w-full max-w-[90%] shrink-0 items-center justify-center truncate rounded-full px-6 text-center font-bold',
           'text-[clamp(1.1rem,5cqmin,2.6rem)] transition-colors',
