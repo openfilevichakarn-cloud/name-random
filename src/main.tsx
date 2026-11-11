@@ -18,11 +18,19 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router/dom'
 
 import { router } from './app/router'
+import { armAudioUnlock, soundManager } from './lib/audio/soundManager'
 import { applySettingsToDocument, useSettingsStore } from './stores/settingsStore'
 
 // Apply persisted appearance before the first paint, then keep <html> in sync with the store.
 applySettingsToDocument(useSettingsStore.getState().settings)
-useSettingsStore.subscribe((state) => applySettingsToDocument(state.settings))
+soundManager.configure(useSettingsStore.getState().settings.sound)
+useSettingsStore.subscribe((state) => {
+  applySettingsToDocument(state.settings)
+  soundManager.configure(state.settings.sound)
+})
+
+// Browsers only allow audio after a user gesture: the audio system is created on the first one.
+armAudioUnlock()
 
 const container = document.getElementById('root')
 if (!container) throw new Error('Root element #root is missing from index.html')

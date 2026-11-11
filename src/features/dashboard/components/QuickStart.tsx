@@ -43,7 +43,7 @@ export function QuickStart({ classrooms, initialClassroomId }: QuickStartProps) 
                   value={classroom.id}
                   checked={active}
                   onChange={() => setSelected(classroom.id)}
-                  className="peer sr-only"
+                  className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                 />
                 <span
                   className={cn(
@@ -65,7 +65,7 @@ export function QuickStart({ classrooms, initialClassroomId }: QuickStartProps) 
               value={NUMBERS}
               checked={selected === NUMBERS}
               onChange={() => setSelected(NUMBERS)}
-              className="peer sr-only"
+              className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
             />
             <span
               className={cn(

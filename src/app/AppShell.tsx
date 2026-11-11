@@ -5,8 +5,10 @@ import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { PageLoader } from '@/components/common/PageLoader'
 import { Backdrop } from '@/components/layout/Backdrop'
 import { Dock } from '@/components/layout/Dock'
+import { SoundToggle } from '@/components/layout/SoundToggle'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { useUiSounds } from '@/hooks/useUiSounds'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/stores/uiStore'
 
@@ -14,6 +16,7 @@ import { useUiStore } from '@/stores/uiStore'
 export function AppShell() {
   const immersive = useUiStore((state) => state.immersive)
   const location = useLocation()
+  useUiSounds()
 
   return (
     <TooltipProvider delayDuration={350}>
@@ -24,7 +27,7 @@ export function AppShell() {
       >
         ข้ามไปยังเนื้อหาหลัก
       </a>
-      {immersive ? null : <Dock />}
+      {immersive ? null : <Dock actions={<SoundToggle />} />}
       <main
         id="main"
         tabIndex={-1}

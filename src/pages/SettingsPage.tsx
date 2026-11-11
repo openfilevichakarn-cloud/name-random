@@ -1,4 +1,4 @@
-import { Palette, Sparkles, type LucideIcon } from 'lucide-react'
+import { Database, Dices, Monitor, Palette, SlidersHorizontal, Sparkles, Volume2, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -6,6 +6,11 @@ import { PageHeader } from '@/components/common/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AnimationSection } from '@/features/settings/sections/AnimationSection'
 import { AppearanceSection } from '@/features/settings/sections/AppearanceSection'
+import { DataSection } from '@/features/settings/sections/DataSection'
+import { DisplaySection } from '@/features/settings/sections/DisplaySection'
+import { GeneralSection } from '@/features/settings/sections/GeneralSection'
+import { RulesSection } from '@/features/settings/sections/RulesSection'
+import { SoundSection } from '@/features/settings/sections/SoundSection'
 
 interface SettingsTab {
   id: string
@@ -15,11 +20,16 @@ interface SettingsTab {
 }
 
 const TABS: readonly SettingsTab[] = [
+  { id: 'general', label: 'General', icon: SlidersHorizontal, Component: GeneralSection },
   { id: 'appearance', label: 'Appearance', icon: Palette, Component: AppearanceSection },
+  { id: 'sound', label: 'Sound', icon: Volume2, Component: SoundSection },
   { id: 'animation', label: 'Animation', icon: Sparkles, Component: AnimationSection },
+  { id: 'rules', label: 'Random Rules', icon: Dices, Component: RulesSection },
+  { id: 'data', label: 'Data Management', icon: Database, Component: DataSection },
+  { id: 'display', label: 'Display', icon: Monitor, Component: DisplaySection },
 ]
 
-const DEFAULT_TAB = 'appearance'
+const DEFAULT_TAB = 'general'
 
 export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -39,9 +49,9 @@ export default function SettingsPage() {
         className="lg:flex-row lg:items-start lg:gap-8"
         orientation="horizontal"
       >
-        <TabsList aria-label="หมวดการตั้งค่า" className="lg:sticky lg:top-10 lg:w-60 lg:shrink-0 lg:flex-col lg:items-stretch">
+        <TabsList aria-label="หมวดการตั้งค่า" className="lg:sticky lg:top-10 lg:w-64 lg:shrink-0 lg:flex-col lg:items-stretch">
           {TABS.map((tab) => (
-            <TabsTrigger key={tab.id} value={tab.id} className="lg:justify-start lg:px-4">
+            <TabsTrigger key={tab.id} value={tab.id} className="shrink-0 lg:justify-start lg:px-4">
               <tab.icon aria-hidden />
               {tab.label}
             </TabsTrigger>

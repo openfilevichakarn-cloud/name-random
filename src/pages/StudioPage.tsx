@@ -1,5 +1,16 @@
 import { AnimatePresence } from 'framer-motion'
-import { Check, ClipboardCopy, PartyPopper, RotateCcw, SkipForward, SlidersHorizontal, UserPlus, Users } from 'lucide-react'
+import {
+  Check,
+  ClipboardCopy,
+  Maximize,
+  Minimize,
+  PartyPopper,
+  RotateCcw,
+  SkipForward,
+  SlidersHorizontal,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
@@ -13,7 +24,9 @@ import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, Sele
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SegmentedControl } from '@/components/ui/toggle-group'
+import { Hint } from '@/components/ui/tooltip'
 import { RANDOM_MODES, type DrawSource, type DrawType, type RandomMode, type SessionInput } from '@/data/types'
+import { Confetti } from '@/features/randomizer/components/Confetti'
 import { DrawSummary } from '@/features/randomizer/components/DrawSummary'
 import { ModeTabs } from '@/features/randomizer/components/ModeTabs'
 import { ParticipantsPanel } from '@/features/randomizer/components/ParticipantsPanel'
@@ -24,6 +37,7 @@ import { WinnerReveal } from '@/features/randomizer/components/WinnerReveal'
 import { buildNumberCandidates, buildStudentCandidates } from '@/features/randomizer/engine/candidates'
 import { getActive, getEligible, resolveTeamCount } from '@/features/randomizer/engine/engine'
 import type { Candidate, PoolState } from '@/features/randomizer/engine/types'
+import { useBigScreen } from '@/features/randomizer/hooks/useBigScreen'
 import { useDrawController } from '@/features/randomizer/hooks/useDrawController'
 import { DRAW_TYPE_LABELS, MODE_META } from '@/features/randomizer/lib/modes'
 import { getCardCapacity } from '@/features/randomizer/stages/card/cardLayout'
@@ -31,6 +45,8 @@ import type { StageMode, StagePhase } from '@/features/randomizer/stages/types'
 import { useElementSize } from '@/hooks/useElementSize'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { getAnimationProfile, getDurationScale } from '@/lib/animation/levels'
+import { soundManager } from '@/lib/audio/soundManager'
+import { cn } from '@/lib/utils'
 import { useClassroomStudents, useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useSettings, useSettingsStore } from '@/stores/settingsStore'
@@ -39,6 +55,8 @@ import { EMPTY_POOL, poolKey, useStudioStore } from '@/stores/studioStore'
 const NO_CLASSROOM = 'none'
 const DRAW_TYPES: readonly DrawType[] = ['single', 'multiple', 'team']
 const SKIPPABLE: readonly StagePhase[] = ['ready', 'dealing', 'running', 'suspense']
+/** Phases during which the tension loop plays. */
+const MUSIC_PHASES: readonly StagePhase[] = ['ready', 'dealing', 'running', 'suspense']
 
 /** The default mode / classroom preferences apply once per app load, not on every visit. */
 let bootstrapped = false
@@ -68,8 +86,12 @@ function Studio() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [confirmNewRound, setConfirmNewRound] = useState(false)
   const [stageRef, stageSize] = useElementSize<HTMLDivElement>()
+  const { immersive, toggle: toggleBigScreen, exit: exitBigScreen } = useBigScreen()
   // Matches Tailwind's `xl` breakpoint: the side panel sits beside the stage, otherwise it opens as a sheet.
-  const wide = useMediaQuery('(min-width: 80rem)')
+  // Big Screen Mode always gives the whole window to the stage.
+  const wide = useMediaQuery('(min-width: 80rem)') && !immersive
+  // On large screens Big Screen Mode pins everything into one viewport; phones keep scrolling.
+  const pinned = useMediaQuery('(min-width: 64rem)') && immersive
 
   useEffect(() => {
     void loadHistory()
@@ -164,6 +186,12 @@ function Studio() {
   const { state, busy } = controller
   const { phase, plan } = state
 
+  // Music: the tension loop while a draw is in flight, the calm loop otherwise (subject to the settings).
+  useEffect(() => {
+    soundManager.setMusic(MUSIC_PHASES.includes(phase) ? 'draw' : 'idle')
+  }, [phase])
+  useEffect(() => () => soundManager.setMusic(null), [])
+
   // Draw counts of the current round, for the participants list.
   const pickCounts = useMemo(() => {
     const counts = new Map<string, number>()
@@ -245,6 +273,11 @@ function Studio() {
       if (event.key === 'Escape') {
         if (phase === 'reveal' || phase === 'summary') close()
         else if (SKIPPABLE.includes(phase)) skip()
+        else if (phase === 'idle' && immersive) exitBigScreen()
+        return
+      }
+      if (event.key === 'f' || event.key === 'F') {
+        toggleBigScreen()
         return
       }
       if (event.key !== ' ' && event.key !== 'Enter') return
@@ -257,7 +290,7 @@ function Studio() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [phase, close, skip, handleStart])
+  }, [phase, close, skip, handleStart, immersive, exitBigScreen, toggleBigScreen])
 
   // ---- Derived UI state ----------------------------------------------------
 
@@ -289,6 +322,14 @@ function Studio() {
     suspense: 'ลุ้น…',
   }
   const teamSummary = phase === 'summary' && state.mode === 'team'
+  // Confetti: a full celebration for a single winner or a finished draw, a smaller one per step.
+  const confettiBudget = animation.confetti ? profile.confetti : 0
+  const celebration =
+    plan && phase === 'reveal'
+      ? { key: `${plan.id}:${state.revealed.length}`, count: plan.picks > 1 ? Math.round(confettiBudget / 3) : confettiBudget }
+      : plan && phase === 'summary'
+        ? { key: `${plan.id}:summary`, count: confettiBudget }
+        : null
 
   const sidePanel = (
     <Tabs defaultValue="participants" className="min-h-0 flex-1 gap-4">
@@ -331,13 +372,14 @@ function Studio() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-        <div>
+    <div className={cn('flex flex-col gap-4 immersive:min-h-dvh immersive:gap-3 immersive:p-3 sm:immersive:p-4', pinned && 'h-dvh')}>
+      <header className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between immersive:xl:items-center">
+        <div className="immersive:hidden">
           <p className="hud-label text-neon-cyan">Randomizer Studio</p>
           <h1 className="mt-1 text-3xl font-extrabold">สตูดิโอสุ่ม</h1>
         </div>
-        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+        <h1 className="sr-only hidden immersive:block">สตูดิโอสุ่ม — โหมดจอใหญ่</h1>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center immersive:w-full">
           <Select
             value={classroomId ?? NO_CLASSROOM}
             onValueChange={(value) => setClassroom(value === NO_CLASSROOM ? null : value)}
@@ -357,11 +399,28 @@ function Studio() {
             </SelectContent>
           </Select>
           <ModeTabs value={mode} onValueChange={setMode} disabled={busy || drawType === 'team'} />
+          <Hint label={immersive ? 'ออกจากโหมดจอใหญ่ (Esc)' : 'โหมดจอใหญ่ (F)'}>
+            <Button
+              variant={immersive ? 'secondary' : 'outline'}
+              onClick={toggleBigScreen}
+              aria-pressed={immersive}
+              className="shrink-0 immersive:md:ml-auto"
+            >
+              {immersive ? <Minimize aria-hidden /> : <Maximize aria-hidden />}
+              {immersive ? 'ออกจากจอใหญ่' : 'จอใหญ่'}
+            </Button>
+          </Hint>
         </div>
       </header>
 
       {/* On wide screens the stage and the side panel share one viewport-high row, so nothing scrolls. */}
-      <div className="grid gap-4 xl:h-[max(35rem,calc(100dvh-10.5rem))] xl:grid-cols-[minmax(0,1fr)_23rem]">
+      <div
+        className={cn(
+          'grid gap-4',
+          pinned && 'min-h-0 flex-1',
+          wide && 'h-[max(35rem,calc(100dvh-10.5rem))] grid-cols-[minmax(0,1fr)_23rem]',
+        )}
+      >
         <GlassCard highlighted className="flex min-h-0 min-w-0 flex-col gap-3 p-3 sm:gap-4 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-2 px-1">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
@@ -374,17 +433,29 @@ function Studio() {
                   : `ผู้เข้าร่วม ${active.length}`}
               </Badge>
             </div>
-            <Button variant="secondary" size="sm" className="xl:hidden" onClick={() => setPanelOpen(true)}>
-              <SlidersHorizontal aria-hidden />
-              ผู้เข้าร่วมและกติกา
-            </Button>
+            {wide ? null : (
+              <Button variant="secondary" size="sm" onClick={() => setPanelOpen(true)}>
+                <SlidersHorizontal aria-hidden />
+                ผู้เข้าร่วมและกติกา
+              </Button>
+            )}
           </div>
 
           <div
             ref={stageRef}
             data-testid="stage"
             data-phase={phase}
-            className="relative h-[min(62dvh,27rem)] overflow-hidden rounded-2xl [container-type:size] sm:h-[clamp(22rem,calc(100dvh-25.5rem),46rem)] xl:h-auto xl:min-h-0 xl:flex-1"
+            className={cn(
+              'relative overflow-hidden rounded-2xl [container-type:size]',
+              // Beside the panel or pinned in Big Screen Mode the stage fills the card;
+              // otherwise it gets a fixed share of the viewport (a larger one in Big Screen Mode).
+              wide || pinned
+                ? 'min-h-0 flex-1'
+                : immersive
+                  ? 'h-[min(74dvh,38rem)]'
+                  : 'h-[min(62dvh,27rem)] sm:h-[clamp(22rem,calc(100dvh-25.5rem),46rem)]',
+              phase === 'reveal' && profile.shake && 'animate-shake',
+            )}
           >
             <StudioStage
               controller={controller}
@@ -458,6 +529,7 @@ function Studio() {
                 />
               ) : null}
             </AnimatePresence>
+            <Confetti fireKey={celebration?.key ?? null} count={celebration?.count ?? 0} />
           </div>
 
           <div className="flex flex-col items-center gap-3 lg:flex-row lg:justify-between">

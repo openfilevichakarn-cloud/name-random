@@ -133,7 +133,10 @@ export function WheelStage({ candidates, phase, run, timeScale, ambient, onSettl
     timeline.to(state, { rotation: start - 14, duration: 0.3 * Math.min(1, scale), ease: 'power2.out', onUpdate: apply })
     timeline.call(() => playSfx('spin'))
     // power4.out: fast launch, then a long crawl over the last few names.
-    timeline.to(state, { rotation: target, duration: (run.quick ? 3.4 : 6.4) * scale, ease: 'power4.out', onUpdate: apply })
+    const spinSeconds = (run.quick ? 3.4 : 6.4) * scale
+    timeline.to(state, { rotation: target, duration: spinSeconds, ease: 'power4.out', onUpdate: apply })
+    // The riser accompanies the final crawl (skipped when the spin is too short to carry it).
+    if (spinSeconds >= 2.4) timeline.call(() => playSfx('suspense'), undefined, `-=${1.5}`)
     timelineRef.current = timeline
 
     return () => {

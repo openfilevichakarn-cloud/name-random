@@ -117,6 +117,7 @@ export function GachaStage({ candidates, phase, run, timeScale, ambient, onSettl
         sim.setAgitating(false)
         setCapsuleColor(sim.removeOne())
         playSfx('tick', { rate: 0.55 })
+        playSfx('suspense')
       },
       undefined,
       stir,

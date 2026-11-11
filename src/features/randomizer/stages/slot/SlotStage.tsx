@@ -214,6 +214,8 @@ export function SlotStage({ candidates, phase, run, timeScale, ambient, onSettle
           onStart: () => {
             playSfx('tick', { rate: 0.6 })
             setStopped(index + 1)
+            // Only the last reel is still turning: build the tension.
+            if (index === strips.length - 2) playSfx('suspense')
           },
         },
         index * 0.06 + duration,

@@ -41,7 +41,7 @@ export function AppearanceSection() {
                     value={accent.value}
                     checked={selected}
                     onChange={() => update('appearance', { accent: accent.value })}
-                    className="peer sr-only"
+                    className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0"
                   />
                   <span
                     className={cn(
