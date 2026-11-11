@@ -154,7 +154,7 @@ export async function signUp(email: string, password: string, displayName: strin
     password,
     options: {
       data: { display_name: displayName.trim() },
-      emailRedirectTo: `${window.location.origin}/login`,
+      emailRedirectTo: new URL('login', window.location.origin + import.meta.env.BASE_URL).href,
     },
   })
   if (error) throw error
@@ -171,7 +171,7 @@ export async function signOut(): Promise<void> {
 export async function requestPasswordReset(email: string): Promise<void> {
   const client = await getSupabaseClient()
   const { error } = await client.auth.resetPasswordForEmail(email.trim(), {
-    redirectTo: `${window.location.origin}/reset-password`,
+    redirectTo: new URL('reset-password', window.location.origin + import.meta.env.BASE_URL).href,
   })
   if (error) throw error
 }

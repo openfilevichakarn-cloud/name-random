@@ -9,6 +9,8 @@ import { contentSecurityPolicy } from './build/csp.ts'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
+  // GitHub Pages serves the app from /<repository>/; other hosts use the root.
+  base: process.env.BASE_PATH ?? '/',
   plugins: [react(), tailwindcss(), contentSecurityPolicy(loadEnv(mode, process.cwd(), 'VITE_').VITE_SUPABASE_URL)],
   resolve: {
     alias: {

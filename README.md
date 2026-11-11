@@ -70,6 +70,13 @@ npm run dev
 
 แอปเป็น static SPA — build ด้วย `npm run build` แล้วนำ `dist/` ขึ้นโฮสต์ใดก็ได้ที่ส่งทุก path กลับไปที่ `index.html`
 
+### GitHub Pages
+
+1. Settings → Pages → Build and deployment → Source: เลือก **GitHub Actions**
+2. workflow `.github/workflows/pages.yml` จะ build (ตั้ง base path เป็น `/<ชื่อ repository>/`) และ deploy ทุกครั้งที่ push
+   หรือกดรันเองที่แท็บ Actions → Deploy to GitHub Pages → Run workflow
+3. (ไม่บังคับ) ใส่ `VITE_SUPABASE_URL` และ `VITE_SUPABASE_PUBLISHABLE_KEY` ที่ Settings → Secrets and variables → Actions → Variables
+
 ### Vercel
 
 1. Import repository นี้ใน Vercel — `vercel.json` ตั้งค่า build, SPA rewrites, security headers และ cache ให้แล้ว

@@ -18,24 +18,30 @@ const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
 const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <AppShell />,
+      errorElement: <RouteError />,
+      children: [
+        { index: true, element: <DashboardPage /> },
+        { path: 'classrooms', element: <ClassroomsPage /> },
+        { path: 'classrooms/:classroomId', element: <ClassroomDetailPage /> },
+        { path: 'studio', element: <StudioPage /> },
+        { path: 'battle', element: <BattlePage /> },
+        { path: 'ranking', element: <RankingPage /> },
+        { path: 'history', element: <HistoryPage /> },
+        { path: 'settings', element: <SettingsPage /> },
+        { path: 'login', element: <LoginPage /> },
+        { path: 'onboarding', element: <OnboardingPage /> },
+        { path: 'reset-password', element: <ResetPasswordPage /> },
+        { path: '*', element: <NotFoundPage /> },
+      ],
+    },
+  ],
   {
-    path: '/',
-    element: <AppShell />,
-    errorElement: <RouteError />,
-    children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'classrooms', element: <ClassroomsPage /> },
-      { path: 'classrooms/:classroomId', element: <ClassroomDetailPage /> },
-      { path: 'studio', element: <StudioPage /> },
-      { path: 'battle', element: <BattlePage /> },
-      { path: 'ranking', element: <RankingPage /> },
-      { path: 'history', element: <HistoryPage /> },
-      { path: 'settings', element: <SettingsPage /> },
-      { path: 'login', element: <LoginPage /> },
-      { path: 'onboarding', element: <OnboardingPage /> },
-      { path: 'reset-password', element: <ResetPasswordPage /> },
-      { path: '*', element: <NotFoundPage /> },
-    ],
+    // Matches Vite's `base` (e.g. /name-random/ on GitHub Pages).
+    basename: import.meta.env.BASE_URL.replace(/\/$/, '') || '/',
   },
-])
+)
