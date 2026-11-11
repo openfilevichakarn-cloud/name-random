@@ -50,6 +50,8 @@ export interface DataRepository {
   createStudents(inputs: StudentInput[]): Promise<Student[]>
   updateStudent(id: ID, patch: StudentPatch): Promise<Student>
   deleteStudents(ids: ID[]): Promise<void>
+  /** Swap a classroom's whole roster atomically: on failure the previous roster is untouched. */
+  replaceStudents(classroomId: ID, inputs: StudentInput[]): Promise<Student[]>
 
   // Random history
   createSession(input: SessionInput): Promise<RandomSession>

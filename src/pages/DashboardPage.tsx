@@ -14,6 +14,7 @@ import { StatTile } from '@/features/dashboard/components/StatTile'
 import { buildActivityFeed, countByDay, countByMode, countDraws, filterSince } from '@/features/history/lib/stats'
 import { addDays, startOfDay } from '@/lib/date'
 import { useDataStore } from '@/stores/dataStore'
+import { useAuthStore } from '@/stores/authStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useSettings } from '@/stores/settingsStore'
 import { useStudioStore } from '@/stores/studioStore'
@@ -84,6 +85,7 @@ function Dashboard() {
   const loadHistory = useHistoryStore((state) => state.load)
   const lastClassroomId = useStudioStore((state) => state.classroomId)
   const general = useSettings('general')
+  const accountName = useAuthStore((state) => state.profile?.displayName ?? '')
   const animationLevel = useSettings('animation').level
 
   useEffect(() => {
@@ -109,7 +111,8 @@ function Dashboard() {
 
   const drawsThisWeek = stats.days.reduce((sum, day) => sum + day.draws, 0)
   const isNew = classrooms.length === 0 && recent.length === 0 && historyStatus === 'ready'
-  const greeting = general.teacherName ? `สวัสดี ${general.teacherName}` : 'พร้อมสุ่มหรือยัง?'
+  const name = general.teacherName || accountName
+  const greeting = name ? `สวัสดี ${name}` : 'พร้อมสุ่มหรือยัง?'
 
   return (
     <div className="flex flex-col gap-5">

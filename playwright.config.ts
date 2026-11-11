@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 4173
 const BASE_URL = `http://localhost:${PORT}`
+/** A second build with accounts enabled, talking to the fake Supabase in e2e/fakeSupabase.ts. */
+const CLOUD_PORT = 4174
+const CLOUD_URL = `http://localhost:${CLOUD_PORT}`
 
 /**
  * On Linux, Chromium only keeps non-ASCII download file names when the process locale is UTF-8.
@@ -36,17 +39,36 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
+      testIgnore: /cloud\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {
       name: 'mobile',
+      testIgnore: /cloud\.spec\.ts/,
       use: { ...devices['Pixel 7'] },
     },
+    {
+      name: 'cloud',
+      testMatch: /cloud\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: CLOUD_URL },
+    },
   ],
-  webServer: {
-    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-  },
+  webServer: [
+    {
+      command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
+    {
+      command: `npx vite build --outDir dist-e2e-cloud && npx vite preview --outDir dist-e2e-cloud --port ${CLOUD_PORT} --strictPort`,
+      url: CLOUD_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      env: {
+        VITE_SUPABASE_URL: 'http://localhost:54321',
+        VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e_fake_key',
+      },
+    },
+  ],
 })

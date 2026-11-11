@@ -152,10 +152,9 @@ export class LocalRepository implements DataRepository {
     )
   }
 
-  async createStudents(inputs: StudentInput[]): Promise<Student[]> {
-    if (inputs.length === 0) return []
+  private buildStudents(inputs: StudentInput[]): Student[] {
     const timestamp = nowIso()
-    const students: Student[] = inputs.map((input) => ({
+    return inputs.map((input) => ({
       id: createId(),
       schoolId: null,
       classroomId: input.classroomId,
@@ -168,6 +167,11 @@ export class LocalRepository implements DataRepository {
       createdAt: timestamp,
       updatedAt: timestamp,
     }))
+  }
+
+  async createStudents(inputs: StudentInput[]): Promise<Student[]> {
+    if (inputs.length === 0) return []
+    const students = this.buildStudents(inputs)
     await this.transact([STORES.classrooms, STORES.students], 'readwrite', async (tx) => {
       const classroomIds = new Set(students.map((student) => student.classroomId))
       for (const classroomId of classroomIds) {
@@ -189,6 +193,20 @@ export class LocalRepository implements DataRepository {
       store.put(next)
       return next
     })
+  }
+
+  async replaceStudents(classroomId: ID, inputs: StudentInput[]): Promise<Student[]> {
+    const students = this.buildStudents(inputs.map((input) => ({ ...input, classroomId })))
+    // One transaction: the old roster is only gone if the new one was written.
+    await this.transact([STORES.classrooms, STORES.students], 'readwrite', async (tx) => {
+      const exists = await promisify(tx.objectStore(STORES.classrooms).count(classroomId))
+      if (exists === 0) throw notFound('ห้องเรียน')
+      const store = tx.objectStore(STORES.students)
+      const keys = await promisify(store.index('classroomId').getAllKeys(classroomId))
+      for (const key of keys) store.delete(key)
+      for (const student of students) store.add(student)
+    })
+    return students
   }
 
   async deleteStudents(ids: ID[]): Promise<void> {

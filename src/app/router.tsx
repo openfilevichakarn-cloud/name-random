@@ -12,6 +12,9 @@ const StudioPage = lazy(() => import('@/pages/StudioPage'))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
+const LoginPage = lazy(() => import('@/pages/LoginPage'))
+const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage'))
 
 export const router = createBrowserRouter([
   {
@@ -25,6 +28,9 @@ export const router = createBrowserRouter([
       { path: 'studio', element: <StudioPage /> },
       { path: 'history', element: <HistoryPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'onboarding', element: <OnboardingPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

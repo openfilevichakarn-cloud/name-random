@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Suspense } from 'react'
+import { lazy, Suspense } from 'react'
 import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 
 import { PageLoader } from '@/components/common/PageLoader'
@@ -8,9 +8,14 @@ import { Dock } from '@/components/layout/Dock'
 import { SoundToggle } from '@/components/layout/SoundToggle'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { isSupabaseConfigured } from '@/data/supabase/client'
 import { useUiSounds } from '@/hooks/useUiSounds'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/stores/uiStore'
+
+const AccountMenu = lazy(() =>
+  import('@/features/auth/components/AccountMenu').then((module) => ({ default: module.AccountMenu })),
+)
 
 /** Root layout: background, navigation, routed page and global overlays. */
 export function AppShell() {
@@ -27,7 +32,20 @@ export function AppShell() {
       >
         ข้ามไปยังเนื้อหาหลัก
       </a>
-      {immersive ? null : <Dock actions={<SoundToggle />} />}
+      {immersive ? null : (
+        <Dock
+          actions={
+            <>
+              <SoundToggle />
+              {isSupabaseConfigured ? (
+                <Suspense fallback={null}>
+                  <AccountMenu />
+                </Suspense>
+              ) : null}
+            </>
+          }
+        />
+      )}
       <main
         id="main"
         tabIndex={-1}

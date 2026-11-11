@@ -1,4 +1,4 @@
-import { Download, FlaskConical, HardDrive, History, LoaderCircle, RotateCcw, Trash2, TriangleAlert, Upload } from 'lucide-react'
+import { Cloud, Download, FlaskConical, HardDrive, History, LoaderCircle, RotateCcw, Trash2, TriangleAlert, Upload } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -11,6 +11,7 @@ import { createDemoStudents, DEMO_CLASSROOM } from '@/data/demo'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { fileTimestamp, formatDateTime } from '@/lib/date'
 import { downloadBlob } from '@/lib/download'
+import { useAuthStore } from '@/stores/authStore'
 import { useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -52,6 +53,7 @@ export function DataSection() {
   const students = useDataStore((state) => state.students)
   const loadData = useDataStore((state) => state.load)
   const revision = useHistoryStore((state) => state.revision)
+  const cloud = useAuthStore((state) => (state.status === 'ready' ? state.school : null))
   const { run, pending } = useAsyncAction()
 
   const [resultCount, setResultCount] = useState<number | null>(null)
@@ -149,16 +151,28 @@ export function DataSection() {
   return (
     <div className="flex flex-col gap-5">
       <SettingGroup title="ที่เก็บข้อมูล" description="ข้อมูลของคุณถูกเก็บที่ใด และมีอะไรอยู่บ้าง">
-        <div className="flex items-start gap-3 px-5 py-4 sm:px-6">
-          <HardDrive className="mt-0.5 size-5 shrink-0 text-neon-cyan" aria-hidden />
-          <div>
-            <p className="font-medium">เก็บในเบราว์เซอร์นี้ (Local)</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              ข้อมูลอยู่ในอุปกรณ์เครื่องนี้เท่านั้น ไม่ถูกส่งออกไปที่ใด หากล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่อง
-              ข้อมูลจะไม่ตามไปด้วย จึงควรสำรองข้อมูลไว้เป็นระยะ
-            </p>
+        {cloud ? (
+          <div className="flex items-start gap-3 px-5 py-4 sm:px-6" data-testid="storage-mode">
+            <Cloud className="mt-0.5 size-5 shrink-0 text-neon-lime" aria-hidden />
+            <div>
+              <p className="font-medium">เก็บบนคลาวด์ (บัญชีโรงเรียน {cloud.name})</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                ข้อมูลซิงก์กับบัญชีของคุณ เปิดจากเครื่องไหนก็เห็นข้อมูลเดียวกัน และแยกจากโรงเรียนอื่นโดยสมบูรณ์
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-start gap-3 px-5 py-4 sm:px-6" data-testid="storage-mode">
+            <HardDrive className="mt-0.5 size-5 shrink-0 text-neon-cyan" aria-hidden />
+            <div>
+              <p className="font-medium">เก็บในเบราว์เซอร์นี้ (Local)</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                ข้อมูลอยู่ในอุปกรณ์เครื่องนี้เท่านั้น ไม่ถูกส่งออกไปที่ใด หากล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่อง
+                ข้อมูลจะไม่ตามไปด้วย จึงควรสำรองข้อมูลไว้เป็นระยะ
+              </p>
+            </div>
+          </div>
+        )}
         <dl className="grid grid-cols-3 divide-x divide-border/70 text-center">
           {[
             ['ห้องเรียน', classrooms.length],
@@ -224,7 +238,10 @@ export function DataSection() {
             ล้างประวัติ
           </Button>
         </SettingRow>
-        <SettingRow label="ลบข้อมูลทั้งหมด" description="ลบห้องเรียน รายชื่อ และประวัติทั้งหมดในเครื่องนี้">
+        <SettingRow
+          label="ลบข้อมูลทั้งหมด"
+          description={cloud ? 'ลบห้องเรียน รายชื่อ และประวัติทั้งหมดของคุณบนคลาวด์' : 'ลบห้องเรียน รายชื่อ และประวัติทั้งหมดในเครื่องนี้'}
+        >
           <Button variant="destructive" className="w-full" onClick={() => setDanger('data')}>
             <Trash2 aria-hidden />
             ลบข้อมูลทั้งหมด

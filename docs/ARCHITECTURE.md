@@ -93,6 +93,10 @@
 | Local | ค่าเริ่มต้น / ไม่ได้ตั้ง `VITE_SUPABASE_URL` / เลือกใช้แบบไม่ล็อกอิน | IndexedDB ในเบราว์เซอร์นี้ |
 | Cloud | ตั้งค่า Supabase และล็อกอินแล้ว | PostgreSQL + RLS |
 
+การสลับโหมดอยู่ที่ `features/auth/lib/session.ts`: เมื่อบัญชีพร้อม (มีโรงเรียน) จะเปลี่ยน repository เป็น
+`SupabaseRepository` ก่อนแจ้งสถานะ `ready` แล้วโหลด store ใหม่ เมื่อออกจากระบบจะกลับเป็น `LocalRepository`
+การตั้งค่าซิงก์แยกผ่าน `settingsSync.ts` (บัญชีชนะเมื่อมีข้อมูลอยู่แล้ว) — รายละเอียดการติดตั้งดู `docs/SUPABASE.md`
+
 ---
 
 ## 3. Technology Stack
@@ -205,6 +209,11 @@ schools 1─┬─* users            (โปรไฟล์ผูกกับ au
 | `random_settings`, `sound_settings` | ตนเอง | ตนเอง |
 
 ทุก policy ตรวจ `school_id` ตรงกับโรงเรียนของผู้ใช้ จึงข้ามโรงเรียนไม่ได้แม้รู้ UUID
+
+การสร้าง/เข้าร่วมโรงเรียน รหัสเชิญ และการเปลี่ยนบทบาท ทำผ่านฟังก์ชัน `SECURITY DEFINER` ที่ตรวจ `auth.uid()` เอง
+(`create_school`, `join_school`, `get_join_code`, `regenerate_join_code`, `set_member_role`)
+ส่วนการแทนที่รายชื่อทั้งห้องใช้ `replace_classroom_students` แบบ `SECURITY INVOKER` (ผ่าน RLS ตามปกติ และ atomic)
+ชุดทดสอบ RLS อยู่ที่ `supabase/tests/rls.test.sql` (`npm run test:db`)
 
 ---
 

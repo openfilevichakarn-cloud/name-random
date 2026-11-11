@@ -18,6 +18,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router/dom'
 
 import { router } from './app/router'
+import { isSupabaseConfigured } from './data/supabase/client'
 import { armAudioUnlock, soundManager } from './lib/audio/soundManager'
 import { applySettingsToDocument, useSettingsStore } from './stores/settingsStore'
 
@@ -31,6 +32,12 @@ useSettingsStore.subscribe((state) => {
 
 // Browsers only allow audio after a user gesture: the audio system is created on the first one.
 armAudioUnlock()
+
+// Accounts and cloud sync, only when a Supabase project is configured. Loaded on demand,
+// so local-only deployments never download the account code.
+if (isSupabaseConfigured) {
+  void import('./features/auth/lib/session').then(({ initAuth }) => initAuth())
+}
 
 const container = document.getElementById('root')
 if (!container) throw new Error('Root element #root is missing from index.html')

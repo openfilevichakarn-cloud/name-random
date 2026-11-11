@@ -112,13 +112,11 @@ export const useDataStore = create<DataState>()((set, get) => {
     },
 
     replaceStudents: async (classroomId, inputs) => {
-      const repository = getRepository()
-      const previous = get().students.filter((student) => student.classroomId === classroomId)
-      // Create first: if this fails the old roster is still intact.
-      const created = await repository.createStudents(inputs)
-      await repository.deleteStudents(previous.map((student) => student.id))
-      const removed = new Set(previous.map((student) => student.id))
-      set((state) => ({ students: [...state.students.filter((student) => !removed.has(student.id)), ...created] }))
+      // Atomic in the repository: if it fails the old roster is still intact.
+      const created = await getRepository().replaceStudents(classroomId, inputs)
+      set((state) => ({
+        students: [...state.students.filter((student) => student.classroomId !== classroomId), ...created],
+      }))
       return created
     },
   }

@@ -1,9 +1,11 @@
-import { Database, Dices, Monitor, Palette, SlidersHorizontal, Sparkles, Volume2, type LucideIcon } from 'lucide-react'
+import { Database, Dices, Monitor, Palette, SlidersHorizontal, Sparkles, UserRound, Volume2, type LucideIcon } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { useSearchParams } from 'react-router'
 
 import { PageHeader } from '@/components/common/PageHeader'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { isSupabaseConfigured } from '@/data/supabase/client'
+import { AccountSection } from '@/features/settings/sections/AccountSection'
 import { AnimationSection } from '@/features/settings/sections/AnimationSection'
 import { AppearanceSection } from '@/features/settings/sections/AppearanceSection'
 import { DataSection } from '@/features/settings/sections/DataSection'
@@ -19,7 +21,7 @@ interface SettingsTab {
   Component: ComponentType
 }
 
-const TABS: readonly SettingsTab[] = [
+const BASE_TABS: readonly SettingsTab[] = [
   { id: 'general', label: 'General', icon: SlidersHorizontal, Component: GeneralSection },
   { id: 'appearance', label: 'Appearance', icon: Palette, Component: AppearanceSection },
   { id: 'sound', label: 'Sound', icon: Volume2, Component: SoundSection },
@@ -28,6 +30,11 @@ const TABS: readonly SettingsTab[] = [
   { id: 'data', label: 'Data Management', icon: Database, Component: DataSection },
   { id: 'display', label: 'Display', icon: Monitor, Component: DisplaySection },
 ]
+
+/** The Account tab only exists when the deployment offers accounts. */
+const TABS: readonly SettingsTab[] = isSupabaseConfigured
+  ? [...BASE_TABS, { id: 'account', label: 'Account', icon: UserRound, Component: AccountSection }]
+  : BASE_TABS
 
 const DEFAULT_TAB = 'general'
 
