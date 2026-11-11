@@ -8,6 +8,7 @@ import type { UserRow } from '@/data/supabase/database.types'
 import { SupabaseRepository } from '@/data/supabase/supabaseRepository'
 import type { UserRole } from '@/data/types'
 import { useAuthStore, type AccountProfile, type AccountSchool } from '@/stores/authStore'
+import { useBattleStore } from '@/stores/battleStore'
 import { useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useStudioStore } from '@/stores/studioStore'
@@ -24,6 +25,8 @@ let generation = 0
 
 async function reloadStores(): Promise<void> {
   useStudioStore.getState().detachSessions()
+  // A Team Battle belongs to the data it was split from.
+  useBattleStore.getState().clear()
   await Promise.all([useDataStore.getState().reload(), useHistoryStore.getState().reload()])
 }
 

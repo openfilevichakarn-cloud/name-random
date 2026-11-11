@@ -109,7 +109,22 @@ test.describe('history', () => {
     const sheet = workbook.Sheets[workbook.SheetNames[0] ?? '']
     if (!sheet) throw new Error('report has no sheet')
     const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false })
-    expect(rows[0]).toEqual(['วันที่', 'เวลา', 'ห้องเรียน', 'รูปแบบ', 'ประเภท', 'ชื่อ', 'เลขที่', 'ทีม', 'ลำดับในครั้ง', 'ดาว'])
+    expect(rows[0]).toEqual([
+      'วันที่',
+      'เวลา',
+      'ห้องเรียน',
+      'รูปแบบ',
+      'ประเภท',
+      'ชื่อ',
+      'เลขที่',
+      'ทีม',
+      'ลำดับในครั้ง',
+      'ดาว',
+      'ภารกิจ',
+      'รางวัลเซอร์ไพรส์',
+      'ผลการตอบ',
+      'Lucky Streak',
+    ])
     expect(rows).toHaveLength(4)
     expect(rows[1]?.slice(2, 5)).toEqual(['ป.2/1', 'Mystery Slot', 'ทีละคน'])
     expect(rows[1]?.[5]).toContain(winners[2] as string)

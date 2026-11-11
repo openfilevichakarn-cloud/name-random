@@ -37,6 +37,10 @@ export type NameSize = (typeof NAME_SIZES)[number]
 export const COUNTDOWN_OPTIONS = [3, 5, 10] as const
 export type CountdownSeconds = (typeof COUNTDOWN_OPTIONS)[number]
 
+export const ANSWER_TIMER_OPTIONS = [10, 15, 20, 30, 45, 60, 90, 120] as const
+/** Seconds on the Quiz Mode answer timer. */
+export type AnswerTimerSeconds = (typeof ANSWER_TIMER_OPTIONS)[number]
+
 const REPEAT_POLICIES = ['no-repeat', 'allow-repeat'] as const satisfies readonly RepeatPolicy[]
 
 // ---------------------------------------------------------------------------
@@ -105,18 +109,19 @@ export interface DisplaySettings {
 export interface FeatureSettings {
   /** Class Ranking: award stars on the winner screen. */
   stars: boolean
-  /** Lucky Streak badge when a student is drawn again and again. */
+  /** Lucky Streak badge when a student is picked more than once on the same day. */
   streak: boolean
+  /** Quiz Mode: an answer timer with correct / wrong buttons on the winner screen. */
+  quiz: boolean
+  answerTimer: AnswerTimerSeconds
   /** Random Challenge: draw a mission for the winner. */
   challenge: boolean
   challenges: string[]
   /** Surprise Reward: occasionally attach a reward to the winner. */
   reward: boolean
   rewards: string[]
-  /** 0–1 probability that a draw carries a reward. */
+  /** 0–1 probability that a winner gets a reward. */
   rewardChance: number
-  /** Answer timer in seconds shown after the reveal; 0 = off. */
-  answerTimer: number
 }
 
 export interface AppSettings {
@@ -144,8 +149,29 @@ export const LIMITS = {
   numberSpan: 500,
   listItems: 30,
   listItemLength: 80,
-  answerTimer: { min: 0, max: 300 },
 } as const
+
+/** Starter missions for Random Challenge. Teachers edit the list in Settings → Features. */
+export const CHALLENGE_PRESETS: readonly string[] = [
+  'ตอบคำถามข้อถัดไป',
+  'อ่านออกเสียงให้เพื่อนฟัง 1 ย่อหน้า',
+  'สรุปสิ่งที่เรียนวันนี้ใน 1 ประโยค',
+  'เขียนคำตอบบนกระดาน',
+  'ตั้งคำถามให้เพื่อนตอบ 1 ข้อ',
+  'อธิบายวิธีคิดให้เพื่อนฟัง',
+  'ยกตัวอย่างจากชีวิตจริง 1 ตัวอย่าง',
+  'เลือกเพื่อนมาช่วยตอบ 1 คน',
+]
+
+/** Starter rewards for Surprise Reward. */
+export const REWARD_PRESETS: readonly string[] = [
+  'เลือกเพลงฟังตอนพักได้ 1 เพลง',
+  'รับสติกเกอร์จากครู',
+  'เป็นผู้ช่วยครูในคาบนี้',
+  'เลือกที่นั่งในคาบถัดไป',
+  'ใช้สิทธิ์ข้ามคำถามได้ 1 ครั้ง',
+  'รับคำชมพิเศษหน้าชั้นเรียน',
+]
 
 function prefersReducedMotion(): boolean {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
@@ -200,12 +226,13 @@ export function createDefaultSettings(): AppSettings {
     features: {
       stars: true,
       streak: true,
+      quiz: false,
+      answerTimer: 30,
       challenge: false,
-      challenges: [],
+      challenges: [...CHALLENGE_PRESETS],
       reward: false,
-      rewards: [],
+      rewards: [...REWARD_PRESETS],
       rewardChance: 0.2,
-      answerTimer: 0,
     },
   }
 }
@@ -241,13 +268,21 @@ function pickText(value: unknown, maxLength: number, fallback: string): string {
   return typeof value === 'string' ? value.slice(0, maxLength) : fallback
 }
 
+/** Trimmed, non-empty, unique (ignoring case) and within the list limits. */
 function pickTextList(value: unknown, fallback: string[]): string[] {
   if (!Array.isArray(value)) return fallback
-  return value
-    .filter((item): item is string => typeof item === 'string')
-    .map((item) => item.trim().slice(0, LIMITS.listItemLength))
-    .filter((item) => item.length > 0)
-    .slice(0, LIMITS.listItems)
+  const seen = new Set<string>()
+  const items: string[] = []
+  for (const item of value) {
+    if (typeof item !== 'string') continue
+    const text = item.replace(/\s+/g, ' ').trim().slice(0, LIMITS.listItemLength)
+    const key = text.toLocaleLowerCase()
+    if (text.length === 0 || seen.has(key)) continue
+    seen.add(key)
+    items.push(text)
+    if (items.length === LIMITS.listItems) break
+  }
+  return items
 }
 
 /**
@@ -324,17 +359,14 @@ export function sanitizeSettings(input: unknown, defaults: AppSettings = createD
     features: {
       stars: pickBool(features.stars, defaults.features.stars),
       streak: pickBool(features.streak, defaults.features.streak),
+      quiz: pickBool(features.quiz, defaults.features.quiz),
+      answerTimer: pickEnum(features.answerTimer, ANSWER_TIMER_OPTIONS, defaults.features.answerTimer),
       challenge: pickBool(features.challenge, defaults.features.challenge),
       challenges: pickTextList(features.challenges, defaults.features.challenges),
       reward: pickBool(features.reward, defaults.features.reward),
       rewards: pickTextList(features.rewards, defaults.features.rewards),
-      rewardChance: pickNumber(features.rewardChance, 0, 1, defaults.features.rewardChance),
-      answerTimer: pickInt(
-        features.answerTimer,
-        LIMITS.answerTimer.min,
-        LIMITS.answerTimer.max,
-        defaults.features.answerTimer,
-      ),
+      // Whole percents, the precision the slider offers.
+      rewardChance: Math.round(pickNumber(features.rewardChance, 0, 1, defaults.features.rewardChance) * 100) / 100,
     },
   }
 }

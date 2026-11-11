@@ -182,6 +182,37 @@ describe('LocalRepository — history', () => {
     expect(await repo.listSessions([session.id])).toEqual([])
     expect(await repo.listClassrooms()).toHaveLength(1)
   })
+
+  it('sums stars and picks per student of one classroom for the Class Ranking', async () => {
+    const session = await repo.createSession({
+      classroomId: 'c1',
+      classroomName: 'A',
+      source: 'students',
+      rules: { repeatPolicy: 'allow-repeat' },
+    })
+    const [single, , team] = await repo.addResults([
+      resultInput(session.id, { studentId: 's1' }),
+      resultInput(session.id, { studentId: 's2', drawIndex: 2, drawType: 'multiple' }),
+      resultInput(session.id, { studentId: 's1', drawIndex: 3, mode: 'team', drawType: 'team', teamIndex: 0 }),
+      resultInput(session.id, { studentId: null, drawIndex: 4 }),
+      resultInput(session.id, { studentId: 's3', classroomId: 'c2', drawIndex: 5 }),
+    ])
+    if (!single || !team) throw new Error('expected results')
+    await repo.updateResult(single.id, { points: 2 })
+    await repo.updateResult(team.id, { points: 1 })
+
+    const stats = await repo.getStudentStats({ classroomId: 'c1' })
+    const byStudent = new Map(stats.map((stat) => [stat.studentId, stat]))
+    expect(stats).toHaveLength(2)
+    expect(byStudent.get('s1')).toMatchObject({ stars: 3, picks: 1, lastPickedAt: single.createdAt })
+    expect(byStudent.get('s2')).toMatchObject({ stars: 0, picks: 1 })
+
+    await pause(5)
+    const later = new Date().toISOString()
+    expect(await repo.getStudentStats({ classroomId: 'c1', from: later })).toEqual([])
+    expect(await repo.getStudentStats({ classroomId: 'c1', to: later })).toHaveLength(2)
+    expect(await repo.getStudentStats({ classroomId: 'nowhere' })).toEqual([])
+  })
 })
 
 describe('LocalRepository — snapshots', () => {

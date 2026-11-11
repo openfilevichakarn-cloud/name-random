@@ -121,7 +121,7 @@ function ReelCell({ kind, item }: { kind: ReelKind; item: ReelItem }) {
   if (kind === 'number') {
     return (
       <span className="flex flex-col items-center leading-none">
-        <span className="hud-label text-[max(0.55rem,2.2cqh)] text-neon-cyan">เลขที่</span>
+        <span className="tag-label text-[max(0.6rem,2.4cqh)] text-neon-cyan">เลขที่</span>
         <span className="tabular mt-[1cqh] text-[16cqh] font-extrabold text-neon-cyan">{item.text}</span>
       </span>
     )

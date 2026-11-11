@@ -9,9 +9,11 @@ import type {
   ResultInput,
   ResultPatch,
   SessionInput,
+  StatsQuery,
   Student,
   StudentInput,
   StudentPatch,
+  StudentStat,
 } from './types'
 
 /** Everything the app stores, in one portable object (backup file, local → cloud upload). */
@@ -64,6 +66,8 @@ export interface DataRepository {
   queryResults(query: HistoryQuery): Promise<HistoryPage>
   /** Remove every session and result the current user owns. */
   clearHistory(): Promise<void>
+  /** Class Ranking: stars and picks per student of a classroom (own draws only). */
+  getStudentStats(query: StatsQuery): Promise<StudentStat[]>
 
   // Bulk
   exportSnapshot(): Promise<DataSnapshot>

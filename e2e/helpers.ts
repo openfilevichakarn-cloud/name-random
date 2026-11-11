@@ -137,7 +137,8 @@ export async function drawWinner(page: Page, { skip = true }: DrawOptions = {}):
 }
 
 export async function closeReveal(page: Page): Promise<void> {
-  await page.getByTestId('winner-reveal').getByRole('button', { name: 'ปิด' }).click()
+  // Exact: "แตะเพื่อเปิดกล่องรางวัล" (the surprise gift) also contains "ปิด".
+  await page.getByTestId('winner-reveal').getByRole('button', { name: 'ปิด', exact: true }).click()
   await expect(stagePhase(page)).toHaveAttribute('data-phase', 'idle')
   await expect(page.getByTestId('winner-reveal')).toHaveCount(0)
 }
@@ -156,4 +157,9 @@ export async function closePanel(page: Page): Promise<void> {
     await close.click()
     await expect(close).toBeHidden()
   }
+}
+
+/** Navigate inside the app through the main menu (keeps pending writes alive, unlike page.goto). */
+export async function navigateTo(page: Page, label: string): Promise<void> {
+  await page.getByRole('navigation', { name: 'เมนูหลัก' }).getByRole('link', { name: label }).click()
 }

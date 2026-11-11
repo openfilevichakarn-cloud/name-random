@@ -1,4 +1,15 @@
-import { Database, Dices, Monitor, Palette, SlidersHorizontal, Sparkles, UserRound, Volume2, type LucideIcon } from 'lucide-react'
+import {
+  Database,
+  Dices,
+  Gamepad2,
+  Monitor,
+  Palette,
+  SlidersHorizontal,
+  Sparkles,
+  UserRound,
+  Volume2,
+  type LucideIcon,
+} from 'lucide-react'
 import type { ComponentType } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -10,6 +21,7 @@ import { AnimationSection } from '@/features/settings/sections/AnimationSection'
 import { AppearanceSection } from '@/features/settings/sections/AppearanceSection'
 import { DataSection } from '@/features/settings/sections/DataSection'
 import { DisplaySection } from '@/features/settings/sections/DisplaySection'
+import { FeaturesSection } from '@/features/settings/sections/FeaturesSection'
 import { GeneralSection } from '@/features/settings/sections/GeneralSection'
 import { RulesSection } from '@/features/settings/sections/RulesSection'
 import { SoundSection } from '@/features/settings/sections/SoundSection'
@@ -27,6 +39,7 @@ const BASE_TABS: readonly SettingsTab[] = [
   { id: 'sound', label: 'Sound', icon: Volume2, Component: SoundSection },
   { id: 'animation', label: 'Animation', icon: Sparkles, Component: AnimationSection },
   { id: 'rules', label: 'Random Rules', icon: Dices, Component: RulesSection },
+  { id: 'features', label: 'Special Features', icon: Gamepad2, Component: FeaturesSection },
   { id: 'data', label: 'Data Management', icon: Database, Component: DataSection },
   { id: 'display', label: 'Display', icon: Monitor, Component: DisplaySection },
 ]

@@ -2,15 +2,35 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { describeError } from '@/data/repository'
-import type { TeamSplit } from '@/data/settings'
-import type { DrawType, RandomMode, RandomResult, RepeatPolicy, ResultInput, SessionInput } from '@/data/types'
+import type { FeatureSettings, TeamSplit } from '@/data/settings'
+import type {
+  DrawType,
+  QuizOutcome,
+  RandomMode,
+  RandomResult,
+  RepeatPolicy,
+  ResultInput,
+  ResultMeta,
+  SessionInput,
+} from '@/data/types'
 import { useLatest } from '@/hooks/useLatest'
 import { playSfx } from '@/lib/audio/sfx'
+import { startOfDay } from '@/lib/date'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useStudioStore } from '@/stores/studioStore'
 import { setStageBusy } from '@/stores/uiStore'
 
 import { planDraw } from '../engine/engine'
+import {
+  applyQuizOutcome,
+  clampStars,
+  countPicksSince,
+  createDeck,
+  decideExtras,
+  toResultMeta,
+  type WinnerExtras,
+} from '../engine/extras'
+import { cryptoRng } from '../engine/rng'
 import type { Candidate, DrawError, DrawPlan, DrawRequest, PoolState } from '../engine/types'
 import type { StageMode, StagePhase, StageRun } from '../stages/types'
 
@@ -34,6 +54,8 @@ export interface DrawConfig {
   poolKey: string
   /** Used to open a history session on the first draw of a round. */
   session: SessionInput
+  /** Stars, Lucky Streak, Random Challenge, Surprise Reward, Quiz Mode. */
+  features: FeatureSettings
 }
 
 export interface DrawState {
@@ -45,6 +67,8 @@ export interface DrawState {
   run: StageRun | null
   /** Winners revealed so far in this draw, in order. */
   revealed: Candidate[]
+  /** The game layer of each revealed winner (same order as `revealed`). */
+  extras: WinnerExtras[]
   /** Mystery Card: table positions turned over so far. */
   flipped: number[]
   /** History rows written for this draw (ids are needed to award stars). */
@@ -59,6 +83,7 @@ const INITIAL_STATE: DrawState = {
   mode: 'wheel',
   run: null,
   revealed: [],
+  extras: [],
   flipped: [],
   results: [],
   error: null,
@@ -68,6 +93,15 @@ const READY_MS = 850
 const SUSPENSE_MS = 800
 /** How long each winner of a multiple draw stays on screen before the next one starts. */
 const STEP_HOLD_MS = 1900
+/** History row ids remembered for editing stars and extras (a team split of a full class fits easily). */
+const MAX_TRACKED_RESULTS = 500
+
+interface RecordEntry {
+  candidate: Candidate
+  pickIndex: number
+  teamIndex: number | null
+  meta: ResultMeta | null
+}
 
 function isNumberCandidate(candidate: Candidate): boolean {
   return candidate.id.startsWith('n:')
@@ -97,6 +131,13 @@ export function useDrawController(config: DrawConfig) {
   const writeQueue = useRef<Promise<void>>(Promise.resolve())
   const drawIndexRef = useRef(0)
   const mountedRef = useRef(true)
+  // Missions and rewards come from decks, so nobody gets the same one twice in a row.
+  const challengeDeck = useRef(createDeck<string>(cryptoRng))
+  const rewardDeck = useRef(createDeck<string>(cryptoRng))
+  /** Picks per student that are committed but not yet in the history store (Lucky Streak). */
+  const unsavedPicks = useRef(new Map<string, number>())
+  /** History row id of each written pick, by `${planId}:${pickIndex}` (stars and quiz edits need it). */
+  const resultIds = useRef(new Map<string, string>())
 
   const update = useCallback((patch: Partial<DrawState>) => {
     stateRef.current = { ...stateRef.current, ...patch }
@@ -130,9 +171,13 @@ export function useDrawController(config: DrawConfig) {
 
   /** Write results to the history. Writes are serialised so rows keep their order. */
   const record = useCallback(
-    (plan: DrawPlan, mode: StageMode, entries: { candidate: Candidate; pickIndex: number; teamIndex: number | null; teamName?: string }[]) => {
+    (plan: DrawPlan, mode: StageMode, entries: RecordEntry[]) => {
       const { poolKey, session } = configRef.current
       const drawIndex = drawIndexRef.current
+      const pending = unsavedPicks.current
+      const students = entries.flatMap(({ candidate }) => (candidate.studentId ? [candidate.studentId] : []))
+      for (const id of students) pending.set(id, (pending.get(id) ?? 0) + 1)
+
       writeQueue.current = writeQueue.current
         .then(async () => {
           const history = useHistoryStore.getState()
@@ -142,7 +187,7 @@ export function useDrawController(config: DrawConfig) {
             sessionId = (await history.openSession(session)).id
             studio.setSession(poolKey, sessionId)
           }
-          const inputs: ResultInput[] = entries.map(({ candidate, pickIndex, teamIndex, teamName }) => ({
+          const inputs: ResultInput[] = entries.map(({ candidate, pickIndex, teamIndex, meta }) => ({
             sessionId,
             classroomId: session.classroomId,
             studentId: candidate.studentId,
@@ -154,9 +199,16 @@ export function useDrawController(config: DrawConfig) {
             drawIndex,
             pickIndex,
             teamIndex,
-            meta: teamName ? { teamName } : null,
+            meta,
           }))
           const created = await history.addResults(inputs)
+          const ids = resultIds.current
+          for (const row of created) ids.set(`${plan.id}:${row.pickIndex}`, row.id)
+          // Only picks still on screen can be edited: keep the most recent ones (Map keeps insertion order).
+          for (const key of ids.keys()) {
+            if (ids.size <= MAX_TRACKED_RESULTS) break
+            ids.delete(key)
+          }
           if (stateRef.current.plan?.id === plan.id) {
             update({ results: [...stateRef.current.results, ...created] })
           }
@@ -165,28 +217,114 @@ export function useDrawController(config: DrawConfig) {
           console.error(error)
           toast.error(describeError(error, 'บันทึกประวัติการสุ่มไม่สำเร็จ'))
         })
+        .finally(() => {
+          // Saved rows are counted from the history store from now on (or never, if the write failed).
+          for (const id of students) {
+            const left = (pending.get(id) ?? 1) - 1
+            if (left > 0) pending.set(id, left)
+            else pending.delete(id)
+          }
+        })
     },
     [configRef, update],
   )
 
-  /** Make a winner official: mark as drawn and write the history row. */
+  /**
+   * Make winners official: mark them as drawn, decide their extras (streak, mission, reward) and write
+   * the history rows. Returns the extras so the caller can show them with the winners.
+   */
   const commitWinners = useCallback(
-    (plan: DrawPlan, mode: StageMode, winners: Candidate[], firstPickIndex: number) => {
-      if (winners.length === 0) return
+    (plan: DrawPlan, mode: StageMode, winners: Candidate[], firstPickIndex: number): WinnerExtras[] => {
+      if (winners.length === 0) return []
+      const { poolKey, features } = configRef.current
       if (plan.policy === 'no-repeat') {
         useStudioStore.getState().markDrawn(
-          configRef.current.poolKey,
+          poolKey,
           winners.map((winner) => winner.id),
         )
       }
+      const history = useHistoryStore.getState().recent
+      const today = startOfDay().toISOString()
+      const extras = winners.map((candidate) =>
+        decideExtras({
+          candidate,
+          features,
+          earlierPicksToday: candidate.studentId
+            ? countPicksSince(history, candidate.studentId, today) +
+              (unsavedPicks.current.get(candidate.studentId) ?? 0)
+            : 0,
+          challenges: challengeDeck.current,
+          rewards: rewardDeck.current,
+          rng: cryptoRng,
+        }),
+      )
       record(
         plan,
         mode,
-        winners.map((candidate, offset) => ({ candidate, pickIndex: firstPickIndex + offset, teamIndex: null })),
+        winners.map((candidate, offset) => ({
+          candidate,
+          pickIndex: firstPickIndex + offset,
+          teamIndex: null,
+          meta: toResultMeta(extras[offset] as WinnerExtras),
+        })),
       )
+      return extras
     },
     [configRef, record],
   )
+
+  /** Save a winner's stars and extras to its history row, once the row has been written. */
+  const persistExtras = useCallback((planId: string, pickIndex: number, extras: WinnerExtras) => {
+    writeQueue.current = writeQueue.current.then(async () => {
+      const id = resultIds.current.get(`${planId}:${pickIndex}`)
+      // No row: the insert failed and the teacher has already been told.
+      if (!id) return
+      try {
+        await useHistoryStore.getState().updateResult(id, { points: extras.points, meta: toResultMeta(extras) })
+      } catch (error) {
+        console.error(error)
+        toast.error(describeError(error, 'บันทึกดาวและภารกิจไม่สำเร็จ'))
+      }
+    })
+  }, [])
+
+  /** Change one winner of the current draw (0-based reveal position). */
+  const editWinner = useCallback(
+    (index: number, change: (extras: WinnerExtras) => WinnerExtras) => {
+      const { plan, extras } = stateRef.current
+      const current = extras[index]
+      if (!plan || !current) return
+      const next = change(current)
+      if (next === current) return
+      update({ extras: extras.map((item, position) => (position === index ? next : item)) })
+      persistExtras(plan.id, index + 1, next)
+    },
+    [persistExtras, update],
+  )
+
+  const setStars = useCallback(
+    (index: number, points: number) => editWinner(index, (extras) => ({ ...extras, points: clampStars(points) })),
+    [editWinner],
+  )
+
+  const setQuiz = useCallback(
+    (index: number, outcome: QuizOutcome | null) =>
+      editWinner(index, (extras) => applyQuizOutcome(extras, outcome, configRef.current.features.stars)),
+    [configRef, editWinner],
+  )
+
+  /** Random Challenge: deal the winner a different mission. */
+  const rerollChallenge = useCallback(
+    (index: number) =>
+      editWinner(index, (extras) => {
+        const challenge = challengeDeck.current.draw(configRef.current.features.challenges)
+        return challenge === null || challenge === extras.challenge ? extras : { ...extras, challenge }
+      }),
+    [configRef, editWinner],
+  )
+
+  /** Resolves once every history write queued so far has finished, with the rows of the current draw. */
+  const flush = useCallback(() => writeQueue.current.then(() => stateRef.current.results), [])
 
   const finish = useCallback(() => {
     clearTimer()
@@ -223,8 +361,8 @@ export function useDrawController(config: DrawConfig) {
     const { plan, mode, run, revealed } = stateRef.current
     if (!plan || !run) return
     clearTimer()
-    commitWinners(plan, mode, [run.winner], revealed.length + 1)
-    update({ phase: 'reveal', revealed: [...revealed, run.winner] })
+    const extras = commitWinners(plan, mode, [run.winner], revealed.length + 1)
+    update({ phase: 'reveal', revealed: [...revealed, run.winner], extras: [...stateRef.current.extras, ...extras] })
     // Multiple draws keep moving on their own; a single winner waits for the teacher.
     if (plan.picks > 1) {
       const hold = STEP_HOLD_MS * Math.max(0.7, configRef.current.timeScale)
@@ -244,7 +382,7 @@ export function useDrawController(config: DrawConfig) {
       plan.teams.flatMap((team) =>
         team.members.map((candidate) => {
           pickIndex += 1
-          return { candidate, pickIndex, teamIndex: team.index, teamName: team.name }
+          return { candidate, pickIndex, teamIndex: team.index, meta: { teamName: team.name } }
         }),
       ),
     )
@@ -284,7 +422,7 @@ export function useDrawController(config: DrawConfig) {
     const plan = outcome.plan
     drawIndexRef.current = useStudioStore.getState().beginDraw(current.poolKey)
     setStageBusy(true)
-    update({ phase: 'ready', plan, mode, run: null, revealed: [], flipped: [], results: [], error: null })
+    update({ phase: 'ready', plan, mode, run: null, revealed: [], extras: [], flipped: [], results: [], error: null })
 
     schedule(Math.max(250, READY_MS * current.timeScale), () => {
       if (mode === 'team') {
@@ -365,8 +503,13 @@ export function useDrawController(config: DrawConfig) {
     if (plan.picks > 1) {
       // Reveal everyone who is still pending in one go.
       const pending = plan.winners.slice(revealed.length)
-      commitWinners(plan, mode, pending, revealed.length + 1)
-      update({ phase: 'summary', run: null, revealed: [...revealed, ...pending] })
+      const extras = commitWinners(plan, mode, pending, revealed.length + 1)
+      update({
+        phase: 'summary',
+        run: null,
+        revealed: [...revealed, ...pending],
+        extras: [...stateRef.current.extras, ...extras],
+      })
       return
     }
     const winner = run?.winner ?? plan.winners[0]
@@ -408,6 +551,10 @@ export function useDrawController(config: DrawConfig) {
     again,
     close,
     dismissError,
+    setStars,
+    setQuiz,
+    rerollChallenge,
+    flush,
   }
 }
 

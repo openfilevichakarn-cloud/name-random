@@ -41,6 +41,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { fileTimestamp } from '@/lib/date'
 import { downloadTable, type SpreadsheetFormat } from '@/lib/spreadsheet'
 import { cn } from '@/lib/utils'
+import { useBattleStore } from '@/stores/battleStore'
 import { useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useStudioStore } from '@/stores/studioStore'
@@ -269,6 +270,7 @@ function HistoryContent() {
           await clearHistory()
           // Open rounds pointed at sessions that no longer exist.
           useStudioStore.getState().detachSessions()
+          useBattleStore.getState().detachResults()
         }}
       />
     </>

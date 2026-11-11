@@ -12,6 +12,7 @@ import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { fileTimestamp, formatDateTime } from '@/lib/date'
 import { downloadBlob } from '@/lib/download'
 import { useAuthStore } from '@/stores/authStore'
+import { useBattleStore } from '@/stores/battleStore'
 import { useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -136,9 +137,11 @@ export function DataSection() {
     if (danger === 'history') {
       await useHistoryStore.getState().clear()
       useStudioStore.getState().detachSessions()
+      useBattleStore.getState().detachResults()
     } else if (danger === 'data') {
       await getRepository().clearAll()
       useStudioStore.getState().clearPools()
+      useBattleStore.getState().clear()
       await reloadEverything()
     } else if (danger === 'settings') {
       useSettingsStore.getState().reset()

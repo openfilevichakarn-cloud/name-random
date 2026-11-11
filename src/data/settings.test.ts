@@ -67,6 +67,33 @@ describe('sanitizeSettings', () => {
     expect(result.features.challenges[1]).toHaveLength(LIMITS.listItemLength)
   })
 
+  it('removes duplicate list items, ignoring case and spacing', () => {
+    const result = sanitizeSettings({
+      features: { rewards: ['Sticker', 'sticker ', 'ได้  ดาว', 'ได้ ดาว', 'อื่น ๆ'] },
+    })
+    expect(result.features.rewards).toEqual(['Sticker', 'ได้ ดาว', 'อื่น ๆ'])
+  })
+
+  it('caps list length', () => {
+    const many = Array.from({ length: LIMITS.listItems + 10 }, (_, index) => `ภารกิจ ${index}`)
+    expect(sanitizeSettings({ features: { challenges: many } }).features.challenges).toHaveLength(LIMITS.listItems)
+  })
+
+  it('keeps an emptied list empty instead of restoring the presets', () => {
+    expect(sanitizeSettings({ features: { challenges: [] } }).features.challenges).toEqual([])
+    expect(sanitizeSettings({}).features.challenges.length).toBeGreaterThan(0)
+  })
+
+  it('validates the quiz timer and the reward chance', () => {
+    const result = sanitizeSettings({ features: { answerTimer: 17, rewardChance: 0.333_33 } })
+    expect(result.features.answerTimer).toBe(30)
+    expect(result.features.rewardChance).toBe(0.33)
+    expect(sanitizeSettings({ features: { answerTimer: 60, rewardChance: 7 } }).features).toMatchObject({
+      answerTimer: 60,
+      rewardChance: 1,
+    })
+  })
+
   it('drops unknown keys', () => {
     const result = sanitizeSettings({ appearance: { accent: 'cyan', evil: true }, extra: 1 })
     expect(result.appearance).not.toHaveProperty('evil')

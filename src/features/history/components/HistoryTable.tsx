@@ -9,6 +9,8 @@ import type { ID, RandomResult, RandomSession } from '@/data/types'
 import { DRAW_TYPE_LABELS, RESULT_MODE_META } from '@/features/randomizer/lib/modes'
 import { formatDate, formatTime } from '@/lib/date'
 
+import { ResultExtras } from './ResultExtras'
+
 interface HistoryTableProps {
   rows: readonly RandomResult[]
   sessions: ReadonlyMap<ID, RandomSession>
@@ -77,6 +79,7 @@ export function HistoryTable({ rows, sessions, onDelete }: HistoryTableProps) {
                       <span className="md:hidden">{classroomName ? ` · ${classroomName}` : ''}</span>
                       <span className="sm:hidden"> · {meta.label}</span>
                     </p>
+                    <ResultExtras meta={result.meta} />
                   </div>
                 </div>
               </TableCell>

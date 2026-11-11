@@ -159,6 +159,10 @@ export type Database = {
         Args: { target_classroom: string; new_students: Json }
         Returns: StudentRow[]
       }
+      classroom_student_stats: {
+        Args: { target_classroom: string; from_ts?: string | null; to_ts?: string | null }
+        Returns: { student_id: string; stars: number; picks: number; last_picked_at: string | null }[]
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

@@ -4,7 +4,7 @@ import { useSettings } from '@/stores/settingsStore'
 import { useUiStore } from '@/stores/uiStore'
 
 /**
- * Big Screen Mode for projectors and smart TVs: navigation disappears and the stage takes the
+ * Big Screen Mode for projectors and smart TVs: navigation disappears and the page takes the
  * whole window. Browser fullscreen and the screen wake lock are added when the settings ask
  * for them and the device supports them; without them the in-page layout still applies.
  */
@@ -73,7 +73,7 @@ export function useBigScreen() {
     }
   }, [immersive, display.keepAwake])
 
-  // Big Screen Mode belongs to the studio: leaving the page ends it.
+  // Big Screen Mode belongs to the page that turned it on: leaving the page ends it.
   useEffect(
     () => () => {
       setImmersive(false)

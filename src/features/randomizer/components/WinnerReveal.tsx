@@ -38,7 +38,9 @@ export interface WinnerRevealProps {
   onExclude: () => void
   /** No-repeat: return this winner to the round. */
   onPutBack: () => void
-  /** Extra badges (streak, challenge, reward). */
+  /** Small badges under the name (Lucky Streak). */
+  badges?: ReactNode
+  /** The winner's game panel (reward, mission, quiz, stars). Sits beside the winner on wide stages. */
   children?: ReactNode
 }
 
@@ -60,13 +62,18 @@ export function WinnerReveal({
   onNext,
   onExclude,
   onPutBack,
+  badges,
   children,
 }: WinnerRevealProps) {
   const primaryRef = useRef<HTMLButtonElement>(null)
   const isNumber = winner.id.startsWith('n:')
   const single = total === 1
+  const hasPanel = Boolean(children)
+  // On a narrow stage the close button sits in the corner, so the main actions fit on one row.
+  const cornerClose = single && canDrawAgain
   const length = Math.max(3, graphemeLength(winner.label))
-  const base = NAME_SCALE[display.nameSize] * (isNumber ? 1.5 : 1)
+  // With a panel the winner shares the stage, so everything in its column is a little smaller.
+  const base = NAME_SCALE[display.nameSize] * (isNumber ? 1.5 : 1) * (hasPanel ? 0.78 : 1)
 
   // The parent keys this component by winner, so mounting is the reveal moment.
   useEffect(() => {
@@ -87,7 +94,7 @@ export function WinnerReveal({
 
   return (
     <motion.div
-      className="absolute inset-0 z-30 flex flex-col items-center justify-center overflow-hidden rounded-[inherit] bg-ink/92 p-4 text-center"
+      className="absolute inset-0 z-30 overflow-hidden rounded-[inherit] bg-ink/92 text-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -107,96 +114,147 @@ export function WinnerReveal({
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgb(139_92_246/0.38),transparent_55%)]"
       />
 
-      <div className="relative flex min-h-0 w-full flex-col items-center gap-[2cqh]">
-        <p className="hud-label flex items-center gap-2 text-neon-gold">
-          <Sparkles className="size-4" aria-hidden />
-          {single ? 'Winner' : `คนที่ ${index + 1} / ${total}`}
-          <Sparkles className="size-4" aria-hidden />
-        </p>
+      {cornerClose ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          aria-label="ปิด"
+          className="absolute top-2 right-2 z-20 bg-ink/70 @3xl:hidden"
+        >
+          <X aria-hidden />
+        </Button>
+      ) : null}
 
-        {display.showAvatar && winner.avatar ? (
-          <motion.div
-            initial={reduced ? false : { scale: 0, rotate: -25 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 15, delay: 0.05 }}
-            className="relative shrink-0"
-          >
-            <span aria-hidden className="absolute -inset-[8%] animate-glow-pulse rounded-[30%] bg-neon-gold/35 blur-xl" />
-            <StudentAvatar
-              avatar={winner.avatar}
-              seed={winner.id}
-              className="relative size-[min(30cqh,34cqw)] ring-4 ring-neon-gold ring-offset-4 ring-offset-ink"
-            />
-          </motion.div>
-        ) : null}
-
-        {isNumber ? <p className="hud-label text-neon-cyan">หมายเลข</p> : null}
-        <motion.p
-          role="status"
-          aria-live="assertive"
-          initial={reduced ? false : { scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
-          animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-          transition={{ type: 'spring', stiffness: 240, damping: 17, delay: reduced ? 0 : 0.18 }}
+      {/* The content scrolls on its own layer, so the oversized light rays never become scrollable. */}
+      <div className="absolute inset-0 flex flex-col overflow-y-auto p-4">
+        <div
           className={cn(
-            'max-w-full px-2 leading-[1.25] font-extrabold break-words',
-            isNumber ? 'text-gradient-gold tabular' : 'text-gradient',
+            'relative my-auto grid w-full items-center justify-items-center gap-x-8 gap-y-[2cqh] [--name-span:118]',
+            hasPanel && '@3xl:grid-cols-[minmax(0,1fr)_minmax(0,25rem)] @3xl:[--name-span:60]',
           )}
-          style={{ fontSize: `clamp(1.75rem, min(${base}cqmin, ${(118 / length).toFixed(1)}cqw), 14rem)` }}
-          data-testid="winner-name"
         >
-          {winner.label}
-        </motion.p>
+          <div className="flex w-full min-w-0 flex-col items-center gap-[2cqh]">
+            <p className="hud-label flex items-center gap-2 text-neon-gold">
+              <Sparkles className="size-4" aria-hidden />
+              {single ? 'Winner' : `คนที่ ${index + 1} / ${total}`}
+              <Sparkles className="size-4" aria-hidden />
+            </p>
 
-        {details.length > 0 ? (
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: reduced ? 0 : 0.35 }}
-            className="text-[clamp(0.95rem,3.4cqmin,1.75rem)] text-foreground/85"
-          >
-            {details.join(' · ')}
-          </motion.p>
-        ) : null}
+            {display.showAvatar && winner.avatar ? (
+              <motion.div
+                initial={reduced ? false : { scale: 0, rotate: -25 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 15, delay: 0.05 }}
+                className="relative shrink-0"
+              >
+                <span
+                  aria-hidden
+                  className="absolute -inset-[8%] animate-glow-pulse rounded-[30%] bg-neon-gold/35 blur-xl"
+                />
+                <StudentAvatar
+                  avatar={winner.avatar}
+                  seed={winner.id}
+                  className={cn(
+                    'relative ring-4 ring-neon-gold ring-offset-4 ring-offset-ink',
+                    hasPanel ? 'size-[min(20cqh,28cqw)] @3xl:size-[min(30cqh,20cqw)]' : 'size-[min(30cqh,34cqw)]',
+                  )}
+                />
+              </motion.div>
+            ) : null}
 
-        {children}
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: reduced ? 0.05 : 0.6 }}
-          className="mt-[1cqh] flex flex-wrap items-center justify-center gap-2.5"
-        >
-          {single ? (
-            <>
-              {canDrawAgain ? (
-                <Button ref={primaryRef} variant="neon" size="lg" onClick={onAgain}>
-                  {againLabel}
-                  <ChevronRight aria-hidden />
-                </Button>
-              ) : null}
-              {policy === 'allow-repeat' ? (
-                <Button variant="secondary" onClick={onExclude}>
-                  <UserMinus aria-hidden />
-                  ตัดชื่อออก
-                </Button>
-              ) : (
-                <Button variant="secondary" onClick={onPutBack}>
-                  <Undo2 aria-hidden />
-                  ใส่ชื่อกลับ
-                </Button>
+            {isNumber ? <p className="tag-label text-neon-cyan">หมายเลข</p> : null}
+            <motion.p
+              role="status"
+              aria-live="assertive"
+              initial={reduced ? false : { scale: 0.5, opacity: 0, filter: 'blur(10px)' }}
+              animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
+              transition={{ type: 'spring', stiffness: 240, damping: 17, delay: reduced ? 0 : 0.18 }}
+              className={cn(
+                'max-w-full px-2 leading-[1.25] font-extrabold break-words',
+                isNumber ? 'text-gradient-gold tabular' : 'text-gradient',
               )}
-              <Button ref={canDrawAgain ? undefined : primaryRef} variant="ghost" onClick={onClose}>
-                <X aria-hidden />
-                ปิด
+              style={{
+                fontSize: `clamp(1.75rem, min(${base.toFixed(1)}cqmin, calc(var(--name-span) * 1cqw / ${length})), 14rem)`,
+              }}
+              data-testid="winner-name"
+            >
+              {winner.label}
+            </motion.p>
+
+            {details.length > 0 ? (
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: reduced ? 0 : 0.35 }}
+                className="text-[clamp(0.95rem,3.4cqmin,1.75rem)] text-foreground/85"
+              >
+                {details.join(' · ')}
+              </motion.p>
+            ) : null}
+
+            {badges ? <div className="flex flex-wrap items-center justify-center gap-2">{badges}</div> : null}
+          </div>
+
+          {hasPanel ? <div className="w-full max-w-md @3xl:max-w-none">{children}</div> : null}
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: reduced ? 0.05 : 0.6 }}
+            className={cn(
+              'mt-[1cqh] flex flex-wrap items-center justify-center gap-2.5',
+              hasPanel && '@3xl:col-span-2',
+              // A narrow stage scrolls when the winner has a panel: keep the next action in reach.
+              hasPanel &&
+                'sticky bottom-0 z-10 -mx-4 -mb-4 w-[calc(100%+2rem)] gap-2 bg-linear-to-t from-ink from-60% to-transparent px-4 pt-6 pb-3 @3xl:static @3xl:m-0 @3xl:w-full @3xl:gap-2.5 @3xl:bg-none @3xl:p-0',
+            )}
+          >
+            {single ? (
+              <>
+                {canDrawAgain ? (
+                  <Button
+                    ref={primaryRef}
+                    variant="neon"
+                    size="lg"
+                    onClick={onAgain}
+                    className={cn(
+                      hasPanel && 'h-11 rounded-xl px-5 text-base @3xl:h-13 @3xl:rounded-2xl @3xl:px-7 @3xl:text-lg',
+                    )}
+                  >
+                    {againLabel}
+                    <ChevronRight aria-hidden />
+                  </Button>
+                ) : null}
+                {policy === 'allow-repeat' ? (
+                  <Button variant="secondary" onClick={onExclude}>
+                    <UserMinus aria-hidden />
+                    ตัดชื่อออก
+                  </Button>
+                ) : (
+                  <Button variant="secondary" onClick={onPutBack}>
+                    <Undo2 aria-hidden />
+                    ใส่ชื่อกลับ
+                  </Button>
+                )}
+                <Button
+                  ref={canDrawAgain ? undefined : primaryRef}
+                  variant="ghost"
+                  onClick={onClose}
+                  className={cn(cornerClose && 'hidden @3xl:inline-flex')}
+                >
+                  <X aria-hidden />
+                  ปิด
+                </Button>
+              </>
+            ) : (
+              <Button ref={primaryRef} variant="secondary" onClick={onNext}>
+                ถัดไป
+                <ChevronRight aria-hidden />
               </Button>
-            </>
-          ) : (
-            <Button ref={primaryRef} variant="secondary" onClick={onNext}>
-              ถัดไป
-              <ChevronRight aria-hidden />
-            </Button>
-          )}
-        </motion.div>
+            )}
+          </motion.div>
+        </div>
       </div>
     </motion.div>
   )

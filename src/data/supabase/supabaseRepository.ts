@@ -12,9 +12,11 @@ import type {
   ResultInput,
   ResultPatch,
   SessionInput,
+  StatsQuery,
   Student,
   StudentInput,
   StudentPatch,
+  StudentStat,
 } from '../types'
 import type { ClassroomRow, Database, Json, ResultRow, SessionRow, StudentRow } from './database.types'
 import {
@@ -307,6 +309,24 @@ export class SupabaseRepository implements DataRepository {
       if (data.length < to - from + 1) break
     }
     return { rows, total }
+  }
+
+  async getStudentStats(query: StatsQuery): Promise<StudentStat[]> {
+    // Summed in the database: one row per student instead of every result (see the class_ranking migration).
+    const { data } = await run(
+      this.client.rpc('classroom_student_stats', {
+        target_classroom: query.classroomId,
+        from_ts: query.from ?? null,
+        to_ts: query.to ?? null,
+      }),
+      'โหลดอันดับไม่สำเร็จ',
+    )
+    return data.map((row) => ({
+      studentId: row.student_id,
+      stars: Number(row.stars),
+      picks: Number(row.picks),
+      lastPickedAt: row.last_picked_at,
+    }))
   }
 
   async clearHistory(): Promise<void> {

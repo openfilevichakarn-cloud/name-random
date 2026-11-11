@@ -65,9 +65,15 @@ export const REPORT_HEADERS = [
   'ทีม',
   'ลำดับในครั้ง',
   'ดาว',
+  'ภารกิจ',
+  'รางวัลเซอร์ไพรส์',
+  'ผลการตอบ',
+  'Lucky Streak',
 ] as const
 
-export const REPORT_WIDTHS = [14, 8, 22, 14, 10, 28, 8, 10, 12, 6] as const
+export const REPORT_WIDTHS = [14, 8, 22, 14, 10, 28, 8, 10, 12, 6, 30, 26, 10, 12] as const
+
+const QUIZ_NAMES = { correct: 'ตอบถูก', wrong: 'ตอบผิด' } as const
 
 /** Rows of the exported report, header first, in the order the results are given. */
 export function resultsToReport(
@@ -87,6 +93,10 @@ export function resultsToReport(
       result.meta?.teamName ?? (result.teamIndex !== null ? `ทีม ${result.teamIndex + 1}` : ''),
       result.pickIndex,
       result.points,
+      result.meta?.challenge ?? '',
+      result.meta?.reward ?? '',
+      result.meta?.quiz ? QUIZ_NAMES[result.meta.quiz] : '',
+      result.meta?.streak ?? '',
     ]),
   ]
 }

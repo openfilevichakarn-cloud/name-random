@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Dices, GraduationCap, History, LayoutDashboard, Settings, type LucideIcon } from 'lucide-react'
+import { Dices, GraduationCap, History, LayoutDashboard, Settings, Trophy, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router'
 
@@ -20,6 +20,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: '/', label: 'หน้าหลัก', icon: LayoutDashboard, end: true },
   { to: '/classrooms', label: 'ห้องเรียน', icon: GraduationCap },
   { to: '/studio', label: 'สตูดิโอ', icon: Dices, featured: true },
+  { to: '/ranking', label: 'อันดับ', icon: Trophy },
   { to: '/history', label: 'ประวัติ', icon: History },
   { to: '/settings', label: 'ตั้งค่า', icon: Settings },
 ]

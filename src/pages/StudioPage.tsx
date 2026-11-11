@@ -8,11 +8,12 @@ import {
   RotateCcw,
   SkipForward,
   SlidersHorizontal,
+  Swords,
   UserPlus,
   Users,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
@@ -26,8 +27,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SegmentedControl } from '@/components/ui/toggle-group'
 import { Hint } from '@/components/ui/tooltip'
 import { RANDOM_MODES, type DrawSource, type DrawType, type RandomMode, type SessionInput } from '@/data/types'
+import { createBattle, type Battle } from '@/features/battle/lib/battle'
 import { Confetti } from '@/features/randomizer/components/Confetti'
 import { DrawSummary } from '@/features/randomizer/components/DrawSummary'
+import { WinnerBadges } from '@/features/randomizer/components/extras/WinnerBadges'
+import { WinnerExtrasPanel } from '@/features/randomizer/components/extras/WinnerExtrasPanel'
 import { ModeTabs } from '@/features/randomizer/components/ModeTabs'
 import { ParticipantsPanel } from '@/features/randomizer/components/ParticipantsPanel'
 import { ReadyBanner } from '@/features/randomizer/components/ReadyBanner'
@@ -36,8 +40,9 @@ import { StudioStage } from '@/features/randomizer/components/StudioStage'
 import { WinnerReveal } from '@/features/randomizer/components/WinnerReveal'
 import { buildNumberCandidates, buildStudentCandidates } from '@/features/randomizer/engine/candidates'
 import { getActive, getEligible, resolveTeamCount } from '@/features/randomizer/engine/engine'
+import { canAwardStars, hasWinnerPanel, NO_EXTRAS } from '@/features/randomizer/engine/extras'
 import type { Candidate, PoolState } from '@/features/randomizer/engine/types'
-import { useBigScreen } from '@/features/randomizer/hooks/useBigScreen'
+import { useBigScreen } from '@/hooks/useBigScreen'
 import { useDrawController } from '@/features/randomizer/hooks/useDrawController'
 import { DRAW_TYPE_LABELS, MODE_META } from '@/features/randomizer/lib/modes'
 import { getCardCapacity } from '@/features/randomizer/stages/card/cardLayout'
@@ -47,6 +52,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { getAnimationProfile, getDurationScale } from '@/lib/animation/levels'
 import { soundManager } from '@/lib/audio/soundManager'
 import { cn } from '@/lib/utils'
+import { useBattleStore } from '@/stores/battleStore'
 import { useClassroomStudents, useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useSettings, useSettingsStore } from '@/stores/settingsStore'
@@ -67,6 +73,7 @@ function Studio() {
   const rules = useSettings('rules')
   const animation = useSettings('animation')
   const display = useSettings('display')
+  const features = useSettings('features')
   const updateSettings = useSettingsStore((state) => state.update)
 
   const storedClassroomId = useStudioStore((state) => state.classroomId)
@@ -83,8 +90,12 @@ function Studio() {
   const loadHistory = useHistoryStore((state) => state.load)
 
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const activeBattle = useBattleStore((state) => state.battle)
   const [panelOpen, setPanelOpen] = useState(false)
   const [confirmNewRound, setConfirmNewRound] = useState(false)
+  const [battleToReplace, setBattleToReplace] = useState<Battle | null>(null)
+  const [openingBattle, setOpeningBattle] = useState(false)
   const [stageRef, stageSize] = useElementSize<HTMLDivElement>()
   const { immersive, toggle: toggleBigScreen, exit: exitBigScreen } = useBigScreen()
   // Matches Tailwind's `xl` breakpoint: the side panel sits beside the stage, otherwise it opens as a sheet.
@@ -182,6 +193,7 @@ function Studio() {
     timeScale,
     poolKey: key,
     session,
+    features,
   })
   const { state, busy } = controller
   const { phase, plan } = state
@@ -262,6 +274,35 @@ function Studio() {
     }
   }
 
+  const launchBattle = (battle: Battle) => {
+    useBattleStore.getState().start(battle)
+    close()
+    void navigate('/battle')
+  }
+
+  /** Team Battle: turn the split on screen into a scoreboard. */
+  const openBattle = async () => {
+    if (!plan || plan.teams.length < 2 || openingBattle) return
+    setOpeningBattle(true)
+    try {
+      // Wait for the split to be in the history: stars for the winners are written to those rows.
+      const results = await controller.flush()
+      const resultIds = new Map<string, string>()
+      plan.teams
+        .flatMap((team) => team.members)
+        .forEach((member, position) => {
+          const row = results.find((result) => result.drawType === 'team' && result.pickIndex === position + 1)
+          if (row) resultIds.set(member.id, row.id)
+        })
+      const battle = createBattle({ teams: plan.teams, title: session.classroomName, classroomId, resultIds })
+      const current = useBattleStore.getState().battle
+      if (current && current.finishedAt === null) setBattleToReplace(battle)
+      else launchBattle(battle)
+    } finally {
+      setOpeningBattle(false)
+    }
+  }
+
   // Keyboard: Space/Enter runs the main action, Escape skips or closes. Works with presenter remotes.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -295,6 +336,14 @@ function Studio() {
   // ---- Derived UI state ----------------------------------------------------
 
   const current = state.revealed[state.revealed.length - 1]
+  const currentIndex = state.revealed.length - 1
+  const currentExtras = state.extras[currentIndex] ?? NO_EXTRAS
+  const singleWinner = plan?.picks === 1
+  const reduced = animation.level === 'low'
+  // Reward, mission and quiz get a panel beside the winner; stars alone sit under the name.
+  const winnerPanel = singleWinner && hasWinnerPanel(currentExtras, features)
+  const inlineStars = singleWinner && !winnerPanel && current !== undefined && canAwardStars(current, features)
+  const winnerBadges = currentExtras.streak !== null || (!singleWinner && currentExtras.reward !== null) || inlineStars
   const teamPreview = {
     members: active.length,
     teams:
@@ -515,12 +564,39 @@ function Studio() {
                   onNext={advance}
                   onExclude={() => excludeWinner(current)}
                   onPutBack={() => putWinnerBack(current)}
-                />
+                  badges={
+                    winnerBadges ? (
+                      <WinnerBadges
+                        winner={current}
+                        extras={currentExtras}
+                        flagReward={!singleWinner}
+                        inlineStars={inlineStars}
+                        reduced={reduced}
+                        onStars={(points) => controller.setStars(currentIndex, points)}
+                      />
+                    ) : undefined
+                  }
+                >
+                  {winnerPanel ? (
+                    <WinnerExtrasPanel
+                      winner={current}
+                      extras={currentExtras}
+                      features={features}
+                      reduced={reduced}
+                      onStars={(points) => controller.setStars(currentIndex, points)}
+                      onQuiz={(outcome) => controller.setQuiz(currentIndex, outcome)}
+                      onReroll={() => controller.rerollChallenge(currentIndex)}
+                    />
+                  ) : null}
+                </WinnerReveal>
               ) : null}
               {phase === 'summary' && plan && state.mode !== 'team' ? (
                 <DrawSummary
                   key="summary"
                   winners={state.revealed}
+                  extras={state.extras}
+                  features={features}
+                  onStars={controller.setStars}
                   clamped={plan.clamped}
                   reduced={animation.level === 'low'}
                   canDrawAgain={canDrawAgain}
@@ -553,7 +629,11 @@ function Studio() {
                     <RotateCcw aria-hidden />
                     สุ่มทีมใหม่
                   </Button>
-                  <Button onClick={close}>
+                  <Button variant="neon" onClick={() => void openBattle()} disabled={openingBattle}>
+                    <Swords aria-hidden />
+                    เริ่ม Team Battle
+                  </Button>
+                  <Button variant="ghost" onClick={close}>
                     <Check aria-hidden />
                     เสร็จสิ้น
                   </Button>
@@ -576,25 +656,35 @@ function Studio() {
                   เริ่มรอบใหม่
                 </Button>
               ) : (
-                <div className="relative w-full sm:w-auto">
-                  {/* The glow pulses behind the button; the button itself stays still so it is easy to hit. */}
-                  {profile.ambient && canStart ? (
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-1 animate-glow-pulse rounded-3xl bg-[linear-gradient(120deg,var(--neon-violet),var(--neon-pink))] blur-xl"
-                    />
+                <>
+                  {drawType === 'team' && activeBattle ? (
+                    <Button asChild variant="secondary">
+                      <Link to="/battle">
+                        <Swords aria-hidden />
+                        กระดานคะแนน Team Battle
+                      </Link>
+                    </Button>
                   ) : null}
-                  <Button
-                    variant="neon"
-                    size="xl"
-                    className="relative w-full sm:min-w-64"
-                    onClick={handleStart}
-                    disabled={!canStart}
-                    data-testid="draw-button"
-                  >
-                    {actionLabel}
-                  </Button>
-                </div>
+                  <div className="relative w-full sm:w-auto">
+                    {/* The glow pulses behind the button; the button itself stays still so it is easy to hit. */}
+                    {profile.ambient && canStart ? (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-1 animate-glow-pulse rounded-3xl bg-[linear-gradient(120deg,var(--neon-violet),var(--neon-pink))] blur-xl"
+                      />
+                    ) : null}
+                    <Button
+                      variant="neon"
+                      size="xl"
+                      className="relative w-full sm:min-w-64"
+                      onClick={handleStart}
+                      disabled={!canStart}
+                      data-testid="draw-button"
+                    >
+                      {actionLabel}
+                    </Button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -613,6 +703,18 @@ function Studio() {
           {sidePanel}
         </SheetContent>
       </Sheet>
+
+      <ConfirmDialog
+        open={battleToReplace !== null}
+        onOpenChange={(open) => (open ? undefined : setBattleToReplace(null))}
+        title="เริ่ม Team Battle ใหม่?"
+        description="มีการแข่งขันที่ยังไม่จบอยู่ คะแนนของเกมเดิมจะถูกแทนที่ด้วยทีมชุดนี้"
+        confirmLabel="เริ่มเกมใหม่"
+        onConfirm={() => {
+          if (battleToReplace) launchBattle(battleToReplace)
+          setBattleToReplace(null)
+        }}
+      />
 
       <ConfirmDialog
         open={confirmNewRound}

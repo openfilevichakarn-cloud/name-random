@@ -313,6 +313,52 @@ select tests.eq(tests.affected(format('delete from public.random_results where i
   'the school owner cannot delete a teacher''s results');
 
 -- -----------------------------------------------------------------------------
+-- Class Ranking (classroom_student_stats)
+-- -----------------------------------------------------------------------------
+
+select tests.login(:bob);
+select id as student_second from public.students where number = 2 and classroom_id = :'room_bob' \gset
+-- A team split with a Team Battle star, an old multiple pick, and a bare number without a student.
+insert into public.random_results (school_id, user_id, session_id, classroom_id, student_id, display_name, mode, draw_type, draw_index, pick_index, team_index, points)
+values (:'school_a', :bob, :'session_bob', :'room_bob', :'student_new', 'ใหม่หนึ่ง', 'team', 'team', 2, 1, 0, 1)
+returning id as rank_team \gset
+insert into public.random_results (school_id, user_id, session_id, classroom_id, student_id, display_name, mode, draw_type, draw_index, pick_index, created_at)
+values (:'school_a', :bob, :'session_bob', :'room_bob', :'student_second', 'ใหม่สอง', 'slot', 'multiple', 3, 1, now() - interval '40 days')
+returning id as rank_old \gset
+insert into public.random_results (school_id, user_id, session_id, classroom_id, student_id, display_name, mode, draw_type, draw_index, pick_index)
+values (:'school_a', :bob, :'session_bob', :'room_bob', null, 'หมายเลข 9', 'wheel', 'single', 4, 1)
+returning id as rank_number \gset
+
+select tests.eq((
+  select string_agg(format('%s:%s:%s', s.first_name, st.stars, st.picks), ',' order by s.number)
+  from public.classroom_student_stats(:'room_bob') st join public.students s on s.id = st.student_id
+), 'ใหม่หนึ่ง:4:1,ใหม่สอง:0:1', 'ranking sums stars of every draw and counts picks without team splits');
+select tests.eq((select count(*)::text from public.classroom_student_stats(:'room_bob')), '2',
+  'results without a student are left out of the ranking');
+select tests.eq((select count(*)::text from public.classroom_student_stats(:'room_bob', now() - interval '7 days')), '1',
+  'the ranking can start at a given time');
+select tests.eq((select student_id::text from public.classroom_student_stats(:'room_bob', null, now() - interval '30 days')),
+  :'student_second', 'the ranking can end at a given time');
+select tests.ok((select last_picked_at from public.classroom_student_stats(:'room_bob') where student_id = :'student_new') is not null,
+  'the ranking reports when a student was last picked');
+
+select tests.login(:frank);
+select tests.eq((select count(*)::text from public.classroom_student_stats(:'room_bob')), '0',
+  'a teacher gets no ranking for a colleague''s classroom');
+select tests.login(:carol);
+select tests.eq((select count(*)::text from public.classroom_student_stats(:'room_bob')), '0',
+  'another school gets no ranking, even knowing the classroom id');
+select tests.login(:alice);
+select tests.eq((select count(*)::text from public.classroom_student_stats(:'room_bob')), '0',
+  'the ranking counts only the caller''s own draws, like the History page');
+select tests.login_anon();
+select tests.fails(format('select * from public.classroom_student_stats(%L)', :'room_bob'), '42501', 'anon cannot read a ranking');
+
+select tests.login(:bob);
+select tests.eq(tests.affected(format('delete from public.random_results where id in (%L, %L, %L)', :'rank_team', :'rank_old', :'rank_number'))::text,
+  '3', 'a teacher deletes their own results');
+
+-- -----------------------------------------------------------------------------
 -- Settings
 -- -----------------------------------------------------------------------------
 

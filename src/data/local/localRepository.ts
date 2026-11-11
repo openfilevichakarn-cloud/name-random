@@ -6,6 +6,7 @@ import {
   type DataSnapshot,
   type ImportSummary,
 } from '../repository'
+import { aggregateStudentStats } from '../stats'
 import type {
   Classroom,
   ClassroomInput,
@@ -17,9 +18,11 @@ import type {
   ResultInput,
   ResultPatch,
   SessionInput,
+  StatsQuery,
   Student,
   StudentInput,
   StudentPatch,
+  StudentStat,
 } from '../types'
 import { DB_NAME, openDatabase, promisify, STORES, transactionDone, type StoreName } from './idb'
 
@@ -347,6 +350,33 @@ export class LocalRepository implements DataRepository {
         b.createdAt.localeCompare(a.createdAt) || b.drawIndex - a.drawIndex || a.pickIndex - b.pickIndex,
     )
     return { rows: matched.slice(offset, offset + limit), total: matched.length }
+  }
+
+  async getStudentStats(query: StatsQuery): Promise<StudentStat[]> {
+    let range: IDBKeyRange | null = null
+    if (query.from && query.to) range = IDBKeyRange.bound(query.from, query.to, false, true)
+    else if (query.from) range = IDBKeyRange.lowerBound(query.from)
+    else if (query.to) range = IDBKeyRange.upperBound(query.to, true)
+
+    const rows = await this.transact([STORES.results], 'readonly', (tx) => {
+      const index = tx.objectStore(STORES.results).index('createdAt')
+      return new Promise<RandomResult[]>((resolve, reject) => {
+        const matched: RandomResult[] = []
+        const request = index.openCursor(range)
+        request.onerror = () => reject(request.error ?? new Error('cursor failed'))
+        request.onsuccess = () => {
+          const cursor = request.result
+          if (!cursor) {
+            resolve(matched)
+            return
+          }
+          const row = cursor.value as RandomResult
+          if (row.classroomId === query.classroomId && row.studentId) matched.push(row)
+          cursor.continue()
+        }
+      })
+    })
+    return aggregateStudentStats(rows)
   }
 
   async clearHistory(): Promise<void> {

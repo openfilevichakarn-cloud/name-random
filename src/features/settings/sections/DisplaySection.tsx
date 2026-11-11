@@ -65,7 +65,7 @@ export function DisplaySection() {
         action={<ResetButton section="display" label="การแสดงผล" />}
       >
         <div className="flex flex-col items-center gap-2 bg-ink/40 px-5 py-6 text-center" aria-label="ตัวอย่างหน้าประกาศผล">
-          <p className="hud-label text-neon-gold">ตัวอย่าง</p>
+          <p className="tag-label text-neon-gold">ตัวอย่าง</p>
           {display.showAvatar ? (
             <StudentAvatar avatar="bot:preview" seed="preview" className="size-20 ring-4 ring-neon-gold ring-offset-4 ring-offset-ink" />
           ) : null}

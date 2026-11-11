@@ -67,6 +67,7 @@ function sanitizeMeta(value: unknown): ResultMeta | null {
   if (typeof value.reward === 'string') meta.reward = text(value.reward, 120)
   const streak = integer(value.streak, 0, 9999)
   if (streak !== null) meta.streak = streak
+  if (value.quiz === 'correct' || value.quiz === 'wrong') meta.quiz = value.quiz
   return Object.keys(meta).length > 0 ? meta : null
 }
 

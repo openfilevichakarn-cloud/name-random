@@ -378,6 +378,13 @@
   text-transform: uppercase;
 }
 
+/* Small label for Thai text: letter-spacing would pull Thai words apart, so no tracking here. */
+@utility tag-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 @utility safe-bottom {
   padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
 }

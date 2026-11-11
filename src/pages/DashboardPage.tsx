@@ -1,4 +1,14 @@
-import { ArrowRight, CalendarDays, Dices, GraduationCap, Settings, Users, Zap, type LucideIcon } from 'lucide-react'
+import {
+  ArrowRight,
+  CalendarDays,
+  Dices,
+  GraduationCap,
+  Settings,
+  Swords,
+  Users,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
@@ -13,8 +23,9 @@ import { RecentResults } from '@/features/dashboard/components/RecentResults'
 import { StatTile } from '@/features/dashboard/components/StatTile'
 import { buildActivityFeed, countByDay, countByMode, countDraws, filterSince } from '@/features/history/lib/stats'
 import { addDays, startOfDay } from '@/lib/date'
-import { useDataStore } from '@/stores/dataStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useBattleStore } from '@/stores/battleStore'
+import { useDataStore } from '@/stores/dataStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { useSettings } from '@/stores/settingsStore'
 import { useStudioStore } from '@/stores/studioStore'
@@ -109,6 +120,7 @@ function Dashboard() {
     }
   }, [recent, classrooms, students])
 
+  const battle = useBattleStore((state) => state.battle)
   const drawsThisWeek = stats.days.reduce((sum, day) => sum + day.draws, 0)
   const isNew = classrooms.length === 0 && recent.length === 0 && historyStatus === 'ready'
   const name = general.teacherName || accountName
@@ -131,6 +143,28 @@ function Dashboard() {
           </div>
         </div>
       </GlassCard>
+
+      {battle && battle.finishedAt === null ? (
+        <GlassCard className="flex flex-col gap-3 border-neon-pink/40 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-neon-pink/15 text-neon-pink">
+              <Swords className="size-6" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="font-bold">Team Battle กำลังแข่งขัน</p>
+              <p className="truncate text-sm text-muted-foreground">
+                {battle.title} · {battle.teams.map((team) => `${team.name} ${team.score}`).join(' · ')}
+              </p>
+            </div>
+          </div>
+          <Button asChild variant="secondary" className="shrink-0">
+            <Link to="/battle">
+              กลับไปที่กระดานคะแนน
+              <ArrowRight aria-hidden />
+            </Link>
+          </Button>
+        </GlassCard>
+      ) : null}
 
       {isNew ? (
         <section aria-labelledby="getting-started">

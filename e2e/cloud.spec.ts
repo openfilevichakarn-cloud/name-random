@@ -231,6 +231,29 @@ test.describe('cloud data', () => {
     await expect(page.getByRole('row').nth(1)).toContainText(winner)
   })
 
+  test('stars given in the cloud rank the class through the database function', async ({ page }) => {
+    const fake = new FakeSupabase()
+    fake.addAccount('rank@school.test', 'rank-password', 'ครูอันดับ', { name: 'โรงเรียนจี' })
+    await fake.install(page)
+    await signIn(page, 'rank@school.test', 'rank-password')
+    await expect(page).toHaveURL(/\/$/)
+
+    await createClassroom(page, 'ม.2/1')
+    await importPastedNames(page, ['มานี มีตา', 'ปิติ พอใจ'])
+    await openStudio(page)
+    const winner = await drawWinner(page)
+    await page
+      .getByTestId('winner-reveal')
+      .getByRole('button', { name: `ให้ดาว ${winner} 1 ดวง` })
+      .click()
+    await expect.poll(() => fake.tables.random_results[0]?.points).toBe(1)
+
+    await page.getByRole('navigation', { name: 'เมนูหลัก' }).getByRole('link', { name: 'อันดับ' }).click()
+    await expect(page.getByTestId('podium')).toContainText(winner)
+    await expect(page.getByTestId('not-picked').getByRole('listitem')).toHaveCount(1)
+    expect(fake.log.some((entry) => entry.path.startsWith('/rest/v1/rpc/classroom_student_stats'))).toBe(true)
+  })
+
   test('settings follow the teacher to another computer', async ({ page, browser }) => {
     const fake = new FakeSupabase()
     fake.addAccount('sync@school.test', 'sync-password', 'ครูซิงก์', { name: 'โรงเรียนเอฟ' })

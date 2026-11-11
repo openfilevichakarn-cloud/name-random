@@ -469,6 +469,26 @@ export class FakeSupabase {
         this.tables.students.push(...created)
         return { body: created }
       }
+      case 'classroom_student_stats': {
+        // Mirrors the SQL function: own draws of one classroom, per student.
+        const from = typeof args.from_ts === 'string' ? args.from_ts : null
+        const to = typeof args.to_ts === 'string' ? args.to_ts : null
+        const totals = new Map<string, { student_id: string; stars: number; picks: number; last_picked_at: string | null }>()
+        for (const row of this.tables.random_results) {
+          if (row.classroom_id !== args.target_classroom || row.user_id !== account.id || !row.student_id) continue
+          const createdAt = String(row.created_at)
+          if ((from && createdAt < from) || (to && createdAt >= to)) continue
+          const id = String(row.student_id)
+          const total = totals.get(id) ?? { student_id: id, stars: 0, picks: 0, last_picked_at: null }
+          total.stars += Number(row.points ?? 0)
+          if (row.draw_type !== 'team') {
+            total.picks += 1
+            if (!total.last_picked_at || createdAt > total.last_picked_at) total.last_picked_at = createdAt
+          }
+          totals.set(id, total)
+        }
+        return { body: [...totals.values()] }
+      }
       default:
         return fail(`fake supabase: unsupported rpc ${name}`, 'PGRST202', 404)
     }

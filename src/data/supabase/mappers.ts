@@ -99,6 +99,7 @@ function toMeta(value: Json | null): ResultMeta | null {
   if (typeof value.challenge === 'string') meta.challenge = value.challenge
   if (typeof value.reward === 'string') meta.reward = value.reward
   if (typeof value.streak === 'number') meta.streak = value.streak
+  if (value.quiz === 'correct' || value.quiz === 'wrong') meta.quiz = value.quiz
   return Object.keys(meta).length > 0 ? meta : null
 }
 

@@ -181,15 +181,17 @@ describe('resultsToReport', () => {
     const rows = resultsToReport(
       [
         result({ displayName: 'มานี มีตา', studentNumber: 7, points: 2 }),
+        result({ meta: { challenge: 'ร้องเพลง', reward: 'สติกเกอร์', quiz: 'correct', streak: 3 } }),
         result({ mode: 'team', drawType: 'team', teamIndex: 1, meta: { teamName: 'ทีม 2' }, sessionId: 'gone' }),
       ],
       new Map([[session.id, session]]),
     )
     expect(rows[0]).toEqual([...REPORT_HEADERS])
-    expect(rows[1]?.slice(2)).toEqual(['ป.5/1', 'Lucky Wheel', 'ทีละคน', 'มานี มีตา', 7, '', 1, 2])
+    expect(rows[1]?.slice(2)).toEqual(['ป.5/1', 'Lucky Wheel', 'ทีละคน', 'มานี มีตา', 7, '', 1, 2, '', '', '', ''])
+    expect(rows[2]?.slice(10)).toEqual(['ร้องเพลง', 'สติกเกอร์', 'ตอบถูก', 3])
     // A missing session leaves the classroom blank instead of failing.
-    expect(rows[2]?.slice(2, 5)).toEqual(['', 'Team Random', 'แบ่งทีม'])
-    expect(rows[2]?.[7]).toBe('ทีม 2')
+    expect(rows[3]?.slice(2, 5)).toEqual(['', 'Team Random', 'แบ่งทีม'])
+    expect(rows[3]?.[7]).toBe('ทีม 2')
   })
 })
 

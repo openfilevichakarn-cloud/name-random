@@ -135,12 +135,19 @@ export interface SessionInput {
   rules: SessionRules
 }
 
+/** How a student answered in Quiz Mode. */
+export type QuizOutcome = 'correct' | 'wrong'
+
 /** Optional extras attached to a result by the advanced features. */
 export interface ResultMeta {
   teamName?: string
+  /** Random Challenge: the mission the student got. */
   challenge?: string
+  /** Surprise Reward. */
   reward?: string
+  /** Lucky Streak: how many times the student had been picked that day, this pick included (≥ 2). */
   streak?: number
+  quiz?: QuizOutcome
 }
 
 export interface RandomResult {
@@ -206,4 +213,27 @@ export interface HistoryPage {
   rows: RandomResult[]
   /** Total number of rows matching the query, ignoring limit/offset. */
   total: number
+}
+
+// ---------------------------------------------------------------------------
+// Class Ranking
+// ---------------------------------------------------------------------------
+
+export interface StatsQuery {
+  classroomId: ID
+  /** Inclusive lower bound (ISO). */
+  from?: ISODateTime | null
+  /** Exclusive upper bound (ISO). */
+  to?: ISODateTime | null
+}
+
+/** One student's totals in a classroom over a period. Students without any result are not listed. */
+export interface StudentStat {
+  studentId: ID
+  /** Stars from every draw, team splits included (Team Battle wins). */
+  stars: number
+  /** Times picked in single and multiple draws (a team split is not a pick). */
+  picks: number
+  /** Most recent pick, or null when the student was only in team splits. */
+  lastPickedAt: ISODateTime | null
 }

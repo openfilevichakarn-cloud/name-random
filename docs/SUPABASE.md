@@ -20,8 +20,11 @@
 
 migration ทั้งหมดอยู่ใน `supabase/migrations/` เลือกวิธีใดวิธีหนึ่ง
 
-**SQL Editor** — คัดลอกเนื้อหาไฟล์ `supabase/migrations/20261111061703_initial_schema.sql` ไปวางใน
-Dashboard → SQL Editor แล้วกด Run
+**SQL Editor** — รันทุกไฟล์ใน `supabase/migrations/` ตามลำดับชื่อไฟล์ (คัดลอกเนื้อหาไปวางใน
+Dashboard → SQL Editor แล้วกด Run ทีละไฟล์)
+
+1. `20261111061703_initial_schema.sql` — ตาราง, RLS, ฟังก์ชันโรงเรียน
+2. `20261111073000_class_ranking.sql` — ฟังก์ชันอันดับดาว (Class Ranking)
 
 **Supabase CLI**
 
@@ -39,7 +42,7 @@ supabase db push
 - เปิด RLS ทุกตาราง และ grant แบบ least-privilege — role `anon` ไม่มีสิทธิ์ใด ๆ
 - trigger สร้างแถวใน `public.users` อัตโนมัติเมื่อมีผู้สมัคร
 - ฟังก์ชันที่แอปเรียกผ่าน `supabase.rpc`: `create_school`, `join_school`, `get_join_code`, `regenerate_join_code`,
-  `set_member_role`, `replace_classroom_students`
+  `set_member_role`, `replace_classroom_students`, `classroom_student_stats` (รวมดาวและจำนวนครั้งที่ถูกเลือกต่อนักเรียน)
 
 ## 3. ตั้งค่า Authentication
 
@@ -77,6 +80,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 | โปรไฟล์ครู | ตนเอง + สมาชิกโรงเรียนเดียวกัน | ตนเอง (เฉพาะชื่อที่แสดง) — บทบาทเปลี่ยนได้โดยเจ้าของผ่าน `set_member_role()` |
 | ห้องเรียน / นักเรียน | ครูเจ้าของห้อง + เจ้าของ/ผู้ดูแลโรงเรียน | เช่นเดียวกัน |
 | รอบการสุ่ม / ผลการสุ่ม | ครูผู้สุ่ม + เจ้าของ/ผู้ดูแลโรงเรียน | ครูผู้สุ่ม |
+| อันดับดาว (`classroom_student_stats`) | ครูผู้สุ่ม (นับเฉพาะผลของตนเอง) | — |
 | การตั้งค่า | เจ้าของบัญชีเท่านั้น | เจ้าของบัญชีเท่านั้น |
 
 - ทุก policy ตรวจโรงเรียนของผู้ร้องขอ จึงอ่านหรือแก้ข้อมูลข้ามโรงเรียนไม่ได้ แม้รู้ UUID
@@ -86,7 +90,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ## ทดสอบ RLS บนเครื่อง
 
 ชุดทดสอบใน `supabase/tests/` จำลองส่วนของ Supabase ที่จำเป็น (roles, `auth.users`, `auth.uid()`)
-แล้วรัน migration และตรวจสิทธิ์ 95 กรณี (ข้ามโรงเรียน, บทบาท, anon, การแก้ความเป็นเจ้าของ ฯลฯ)
+แล้วรัน migration และตรวจสิทธิ์ 105 กรณี (ข้ามโรงเรียน, บทบาท, anon, การแก้ความเป็นเจ้าของ, อันดับดาว ฯลฯ)
 ต้องมี PostgreSQL 15+ และผู้ใช้ที่สร้าง database/role ได้ โดยเชื่อมต่อผ่านตัวแปร libpq (`PGHOST`, `PGUSER`, `PGPASSWORD`)
 
 ```bash

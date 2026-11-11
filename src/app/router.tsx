@@ -11,6 +11,8 @@ const ClassroomDetailPage = lazy(() => import('@/pages/ClassroomDetailPage'))
 const StudioPage = lazy(() => import('@/pages/StudioPage'))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+const BattlePage = lazy(() => import('@/pages/BattlePage'))
+const RankingPage = lazy(() => import('@/pages/RankingPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'))
@@ -26,6 +28,8 @@ export const router = createBrowserRouter([
       { path: 'classrooms', element: <ClassroomsPage /> },
       { path: 'classrooms/:classroomId', element: <ClassroomDetailPage /> },
       { path: 'studio', element: <StudioPage /> },
+      { path: 'battle', element: <BattlePage /> },
+      { path: 'ranking', element: <RankingPage /> },
       { path: 'history', element: <HistoryPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'login', element: <LoginPage /> },

@@ -139,7 +139,7 @@
 └─ src/
    ├─ main.tsx                  entry
    ├─ app/                      router, AppShell, providers, error boundary
-   ├─ pages/                    Dashboard, Classrooms, ClassroomDetail, Studio, History, Settings, Auth
+   ├─ pages/                    Dashboard, Classrooms, ClassroomDetail, Studio, Battle, Ranking, History, Settings, Auth
    ├─ components/
    │  ├─ ui/                    button, dialog, select, tabs, slider, ... (shadcn-style)
    │  ├─ common/                GlassCard, PageHeader, EmptyState, ConfirmDialog, StudentAvatar, ...
@@ -149,14 +149,18 @@
    │  ├─ classrooms/            ฟอร์ม/การ์ดห้องเรียน
    │  ├─ students/              ตาราง, ฟอร์ม, Avatar picker, Import/Export (lib + components)
    │  ├─ randomizer/
-   │  │  ├─ engine/             ★ RNG, shuffle, rules, planner (pure TS + tests)
+   │  │  ├─ engine/             ★ RNG, shuffle, rules, planner, extras (pure TS + tests)
    │  │  ├─ stages/             wheel/ slot/ card/ countdown/ gacha/ team/
-   │  │  ├─ components/         StudioStage, ModeSelector, ParticipantsPanel, RulesPanel, WinnerReveal
-   │  │  └─ hooks/              useDrawController (state machine), useBigScreen
+   │  │  ├─ components/         StudioStage, ModeTabs, ParticipantsPanel, RulesPanel, WinnerReveal
+   │  │  │  └─ extras/          ดาว, Lucky Streak, ภารกิจ, รางวัลเซอร์ไพรส์, Quiz timer
+   │  │  └─ hooks/              useDrawController (state machine)
+   │  ├─ battle/                Team Battle: lib (คะแนน, undo, สุ่มทีม/ตัวแทน) + components
+   │  ├─ ranking/               Class Ranking: lib (ช่วงเวลา, จัดอันดับ, export) + podium/leaderboard
    │  ├─ history/               ตัวกรอง, ตาราง, รายงาน
-   │  ├─ settings/              แท็บตั้งค่า 7 หมวด
+   │  ├─ settings/              แท็บตั้งค่า (รวม Special Features)
    │  └─ auth/                  ล็อกอิน, สมัคร, onboarding โรงเรียน
-   ├─ stores/                   Zustand stores
+   ├─ hooks/                    useBigScreen, useRoulette, useAsyncAction, ...
+   ├─ stores/                   Zustand stores (data, history, studio, battle, settings, ui, auth)
    ├─ data/
    │  ├─ types.ts               โดเมนโมเดล (ตรงกับตารางฐานข้อมูล)
    │  ├─ repository.ts          DataRepository interface
@@ -243,6 +247,27 @@ idle ─► ready ─► running ─► suspense ─► reveal ─► idle
 
 ---
 
+### 6.2 Advanced Features (Phase 6)
+
+ทุกฟีเจอร์เปิด/ปิดและตั้งค่าได้ที่ **ตั้งค่า → Special Features** (`settings.features`) และทำงานได้ทั้งโหมด Local และ Cloud
+
+| ฟีเจอร์ | การทำงาน | ข้อมูลที่บันทึก |
+| --- | --- | --- |
+| Class Ranking (ดาว) | ให้/ลดดาวบนหน้าผู้ชนะและหน้าสรุปผล (สูงสุด 5 ดวงต่อครั้ง) หน้า `/ranking` แสดง podium, อันดับ (ดาวเท่ากันอันดับเท่ากัน 1, 1, 3), คนที่ยังไม่ถูกเลือก + ปุ่มสุ่มเฉพาะกลุ่มนั้น, ส่งออก Excel/CSV, โหมดจอใหญ่ | `random_results.points` |
+| Lucky Streak | ป้ายเมื่อนักเรียนถูกเลือกซ้ำในวันเดียวกัน (ครั้งที่ 2 ขึ้นไป) นับจากประวัติ + ผลที่กำลังบันทึก | `meta.streak` |
+| Random Challenge | สุ่มภารกิจจากรายการของครูแบบ "สำรับไพ่" (ไม่ซ้ำจนครบรอบ และไม่ซ้ำติดกันข้ามรอบ) กดสุ่มภารกิจใหม่ได้ | `meta.challenge` |
+| Surprise Reward | สุ่มโอกาส (0–100%) ด้วย crypto RNG แล้วให้นักเรียนแตะเปิดกล่องรางวัล | `meta.reward` |
+| Quiz Mode | ตัวจับเวลาตอบ (10–120 วินาที, นับจาก deadline ไม่สะสมคลาดเคลื่อน) + ปุ่มตอบถูก/ตอบผิด ตอบถูกได้ 1 ดาว | `meta.quiz`, `points` |
+| Team Battle | จากผลแบ่งทีม → กระดานคะแนน `/battle` (+1/+2/−1, ย้อนกลับ, คีย์ลัด 1–9, สุ่มทีมตอบ, สุ่มตัวแทนทีม) จบเกมแล้วให้ดาวสมาชิกทีมชนะ | สถานะเกมใน localStorage, ดาวใน `points` ของแถวแบ่งทีม |
+| Group Maker / Avatar | มีตั้งแต่ Phase 3/2 (แบ่งทีมตามจำนวนทีมหรือขนาดทีม, Avatar หุ่นยนต์/อีโมจิ) | — |
+
+หลักการเดียวกับการสุ่มหลัก: ภารกิจ/รางวัล/streak ถูก **ตัดสินตอนผลออก (commit) ก่อนแสดง** ใน `engine/extras.ts`
+(pure function รับ RNG) แล้วหน้าจอแค่แสดงผล การสุ่มทีมตอบและตัวแทนทีมเลือกเป้าหมายด้วย `cryptoRng` ก่อน แล้ว
+`useRoulette` จึงวิ่งไฟไปหยุดที่เป้าหมายนั้น — การแก้ดาว/ภารกิจ/ผลตอบถูกเขียนต่อคิวเดียวกับการบันทึกผล จึงไม่แซงกัน
+
+อันดับคำนวณที่ฐานข้อมูล: `getStudentStats()` ใน IndexedDB รวมผลในเครื่อง ส่วนบน Supabase เรียก
+`classroom_student_stats()` (SECURITY INVOKER, นับเฉพาะผลของผู้เรียก, คืน 1 แถวต่อนักเรียน)
+
 ## 7. Sound Architecture
 
 ```
@@ -269,9 +294,9 @@ MusicEngine (step sequencer บน Web Audio แบบสด) ──────
 
 | ระดับ | เครื่องมือ | ครอบคลุม |
 | --- | --- | --- |
-| Unit | Vitest | random engine (ความสม่ำเสมอ, ไม่ซ้ำ, กติกา), validation, import/export, repository (fake-indexeddb), WAV encoder |
+| Unit | Vitest | random engine (ความสม่ำเสมอ, ไม่ซ้ำ, กติกา), extras (deck, โอกาสรางวัล, streak), Team Battle, ranking, validation, import/export, repository (fake-indexeddb + fake fetch), WAV encoder |
 | Database | psql + สคริปต์ SQL | migration ใช้ได้จริง, RLS กันข้ามโรงเรียน |
-| E2E | Playwright (desktop + mobile) | CRUD ห้อง/นักเรียน, import, สุ่มทั้ง 5 โหมด, ไม่ซ้ำจนครบรอบ, ประวัติ, ตั้งค่า |
+| E2E | Playwright (desktop + mobile + cloud) | CRUD ห้อง/นักเรียน, import, สุ่มทั้ง 5 โหมด, ไม่ซ้ำจนครบรอบ, ประวัติ, ตั้งค่า, บัญชีครู, ดาว/อันดับ, ภารกิจ/รางวัล/streak, Quiz, Team Battle |
 
 ## 10. Roadmap
 

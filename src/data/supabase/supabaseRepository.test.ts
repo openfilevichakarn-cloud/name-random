@@ -242,6 +242,17 @@ describe('SupabaseRepository — writes', () => {
     })
   })
 
+  it('reads the Class Ranking totals from the database function', async () => {
+    const { requests, repository } = fakeBackend(() => ({
+      body: [{ student_id: 's1', stars: 4, picks: 2, last_picked_at: AT }],
+    }))
+    const stats = await repository.getStudentStats({ classroomId: ROOM, from: AT })
+    expect(stats).toEqual([{ studentId: 's1', stars: 4, picks: 2, lastPickedAt: AT }])
+    const request = requests[0] as Recorded
+    expect(request.url.pathname).toBe('/rest/v1/rpc/classroom_student_stats')
+    expect(request.body).toEqual({ target_classroom: ROOM, from_ts: AT, to_ts: null })
+  })
+
   it('records results in pick order with ownership attached', async () => {
     const { requests, repository } = fakeBackend((request) => ({
       status: 201,
