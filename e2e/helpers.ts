@@ -101,6 +101,9 @@ const MODE_NAMES = {
   card: 'Mystery Card',
   countdown: 'Countdown',
   gacha: 'Gacha',
+  kart: 'Go-Kart Race',
+  duck: 'Duck Race',
+  boat: 'Long-tail Boat Race',
 } as const
 export type ModeName = keyof typeof MODE_NAMES
 

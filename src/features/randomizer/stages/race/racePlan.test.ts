@@ -1,0 +1,72 @@
+import { describe, expect, it } from 'vitest'
+
+import type { Candidate } from '../../engine/types'
+import { CHECKPOINTS, leaderAt, MAX_RACERS, pickRacers, planRace } from './racePlan'
+
+function candidates(count: number): Candidate[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `s${index}`,
+    label: `คนที่ ${index}`,
+    detail: '',
+    number: index,
+    avatar: null,
+    studentId: `s${index}`,
+  }))
+}
+
+/** Deterministic pseudo-random numbers for repeatable tests. */
+function seeded(seed: number) {
+  let state = seed
+  return () => {
+    state = (state * 1664525 + 1013904223) % 2 ** 32
+    return state / 2 ** 32
+  }
+}
+
+describe('pickRacers', () => {
+  it('always puts the winner on the track, with distinct others up to the lane limit', () => {
+    const pool = candidates(30)
+    for (let seed = 1; seed < 50; seed += 1) {
+      const winner = pool[seed % pool.length] as Candidate
+      const racers = pickRacers(pool, winner, MAX_RACERS, seeded(seed))
+      expect(racers).toHaveLength(MAX_RACERS)
+      expect(racers).toContain(winner)
+      expect(new Set(racers.map((racer) => racer.id)).size).toBe(MAX_RACERS)
+    }
+  })
+
+  it('races everyone when the pool is small', () => {
+    const pool = candidates(2)
+    expect(pickRacers(pool, pool[1] as Candidate).map((racer) => racer.id).sort()).toEqual(['s0', 's1'])
+  })
+})
+
+describe('planRace', () => {
+  it('lets only the drawn winner cross the line, first', () => {
+    const racers = candidates(6)
+    for (let seed = 1; seed < 200; seed += 1) {
+      const winner = racers[seed % racers.length] as Candidate
+      const plan = planRace(racers, winner.id, seeded(seed))
+      plan.forEach((points, index) => {
+        expect(points).toHaveLength(CHECKPOINTS + 1)
+        expect(points[0]).toBe(0)
+        // Never moves backwards.
+        for (let step = 1; step < points.length; step += 1) expect(points[step]).toBeGreaterThanOrEqual(points[step - 1] as number)
+        const end = points[CHECKPOINTS] as number
+        if (racers[index]?.id === winner.id) expect(end).toBe(1)
+        else expect(end).toBeLessThan(0.96)
+      })
+      expect(racers[leaderAt(plan, CHECKPOINTS)]?.id).toBe(winner.id)
+    }
+  })
+
+  it('changes the lead during some races, so the result is not obvious from the start', () => {
+    const racers = candidates(6)
+    let changed = 0
+    for (let seed = 1; seed < 100; seed += 1) {
+      const plan = planRace(racers, 's0', seeded(seed))
+      if (racers[leaderAt(plan, 2)]?.id !== 's0') changed += 1
+    }
+    expect(changed).toBeGreaterThan(30)
+  })
+})

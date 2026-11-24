@@ -12,7 +12,7 @@ interface ModeTabsProps {
   className?: string
 }
 
-/** The five game modes as a single-choice switcher. */
+/** The game modes as a single-choice switcher (scrolls sideways when they do not fit). */
 export function ModeTabs({ value, onValueChange, disabled = false, className }: ModeTabsProps) {
   return (
     <ToggleGroup.Root
@@ -24,7 +24,8 @@ export function ModeTabs({ value, onValueChange, disabled = false, className }: 
         if (next) onValueChange(next as RandomMode)
       }}
       className={cn(
-        'no-scrollbar glass flex max-w-full items-stretch gap-1 overflow-x-auto rounded-2xl p-1.5',
+        // Wraps instead of scrolling: every mode stays visible (4 per row on phones).
+        'glass grid max-w-full grid-cols-4 items-stretch gap-1 rounded-2xl p-1.5 sm:flex sm:flex-wrap',
         disabled && 'opacity-60',
         className,
       )}
@@ -38,14 +39,14 @@ export function ModeTabs({ value, onValueChange, disabled = false, className }: 
             aria-label={`${meta.english} — ${meta.label}`}
             title={meta.description}
             className={cn(
-              'flex min-h-12 min-w-[4.25rem] flex-auto shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-3 text-muted-foreground',
+              'flex min-h-12 min-w-0 flex-auto flex-col items-center justify-center gap-0.5 rounded-xl px-1.5 text-muted-foreground sm:min-w-[4.25rem] sm:px-3',
               'outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
               'data-[state=on]:bg-primary/25 data-[state=on]:text-foreground data-[state=on]:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--primary)_60%,transparent)]',
               'disabled:pointer-events-none sm:flex-row sm:gap-2',
             )}
           >
             <meta.icon className="size-5 shrink-0" aria-hidden />
-            <span className="text-[0.6875rem] leading-none font-semibold whitespace-nowrap sm:text-sm">{meta.label}</span>
+            <span className="max-w-full truncate text-[0.6875rem] leading-tight font-semibold sm:text-sm">{meta.label}</span>
           </ToggleGroup.Item>
         )
       })}

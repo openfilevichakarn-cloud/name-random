@@ -70,7 +70,7 @@ export type ResultRow = {
   display_name: string
   student_number: number | null
   avatar: string | null
-  mode: 'wheel' | 'slot' | 'card' | 'countdown' | 'gacha' | 'team'
+  mode: 'wheel' | 'slot' | 'card' | 'countdown' | 'gacha' | 'kart' | 'duck' | 'boat' | 'team'
   draw_type: 'single' | 'multiple' | 'team'
   draw_index: number
   pick_index: number

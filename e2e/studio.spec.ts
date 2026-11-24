@@ -4,6 +4,7 @@ import {
   closePanel,
   closeReveal,
   drawWinner,
+  navigateTo,
   openPanel,
   openStudio,
   seedClassroom,
@@ -43,9 +44,19 @@ test.describe('game modes', () => {
       await expect(page.getByTestId('stage-result')).toHaveText(winner)
     },
     gacha: async () => undefined,
+    // Only the drawn student crosses the finish line.
+    kart: async (page, winner) => {
+      await expect(page.getByTestId('race-leader')).toHaveText(`เข้าเส้นชัย: ${winner}`)
+    },
+    duck: async (page, winner) => {
+      await expect(page.getByTestId('race-leader')).toHaveText(`เข้าเส้นชัย: ${winner}`)
+    },
+    boat: async (page, winner) => {
+      await expect(page.getByTestId('race-leader')).toHaveText(`เข้าเส้นชัย: ${winner}`)
+    },
   }
 
-  for (const mode of ['wheel', 'slot', 'countdown', 'gacha'] as const) {
+  for (const mode of ['wheel', 'slot', 'countdown', 'gacha', 'kart', 'duck', 'boat'] as const) {
     test(`${mode}: the full animation ends on the drawn student`, async ({ page }) => {
       await seedClassroom(page, 'ป.6/1', ROSTER)
       await openStudio(page, mode)
@@ -250,7 +261,9 @@ test.describe('safety', () => {
     await expect(stagePhase(page)).toHaveAttribute('data-phase', 'reveal', { timeout: 30_000 })
     await expect(page.getByTestId('pool-count')).toHaveText('เหลือ 5 / 6')
 
-    await page.goto('/history')
+    // In-app navigation: a full reload right after the reveal could cut the history write short.
+    await closeReveal(page)
+    await navigateTo(page, 'ประวัติ')
     await expect(page.getByRole('row')).toHaveCount(2)
   })
 

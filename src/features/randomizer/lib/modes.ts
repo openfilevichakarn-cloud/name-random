@@ -1,4 +1,4 @@
-import { Cherry, Egg, FerrisWheel, GalleryHorizontalEnd, Timer, Users, type LucideIcon } from 'lucide-react'
+import { Bird, Car, Cherry, Egg, FerrisWheel, GalleryHorizontalEnd, Sailboat, Timer, Users, type LucideIcon } from 'lucide-react'
 
 import type { DrawType, RandomMode, ResultMode } from '@/data/types'
 
@@ -48,6 +48,27 @@ export const MODE_META: Record<RandomMode, ModeMeta> = {
     description: 'หมุนตู้กาชาแล้วเปิดแคปซูลลุ้นชื่อ',
     icon: Egg,
     action: 'หมุนกาชา!',
+  },
+  kart: {
+    label: 'โกคาร์ท',
+    english: 'Go-Kart Race',
+    description: 'รถโกคาร์ทของทุกคนแข่งกันเข้าเส้นชัย',
+    icon: Car,
+    action: 'ออกตัว!',
+  },
+  duck: {
+    label: 'เป็ดว่ายน้ำ',
+    english: 'Duck Race',
+    description: 'เป็ดน้อยว่ายน้ำแข่งกัน ตัวไหนถึงทุ่นก่อนชนะ',
+    icon: Bird,
+    action: 'ปล่อยเป็ด!',
+  },
+  boat: {
+    label: 'เรือหางยาว',
+    english: 'Long-tail Boat Race',
+    description: 'แข่งเรือหางยาวแบบไทยกลางลำน้ำ',
+    icon: Sailboat,
+    action: 'ติดเครื่อง!',
   },
 }
 

@@ -85,7 +85,7 @@ export function QuickStart({ classrooms, initialClassroomId }: QuickStartProps) 
 
       <div>
         <p className="hud-label mb-2 text-neon-cyan">2 · เลือกโหมดแล้วเริ่มเลย</p>
-        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
           {RANDOM_MODES.map((mode) => {
             const meta = MODE_META[mode]
             return (

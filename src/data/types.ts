@@ -11,8 +11,8 @@ export type ISODateTime = string
 // Randomizer vocabulary
 // ---------------------------------------------------------------------------
 
-export const RANDOM_MODES = ['wheel', 'slot', 'card', 'countdown', 'gacha'] as const
-/** The five Randomizer Studio game modes. */
+export const RANDOM_MODES = ['wheel', 'slot', 'card', 'countdown', 'gacha', 'kart', 'duck', 'boat'] as const
+/** The Randomizer Studio game modes (five classics and three races). */
 export type RandomMode = (typeof RANDOM_MODES)[number]
 /** How a result was produced. `team` results come from the group maker, not from a game mode. */
 export type ResultMode = RandomMode | 'team'

@@ -293,6 +293,10 @@ select tests.fails(format($$insert into public.random_results (school_id, user_i
   :'school_a', :bob, :'session_alice'), '42501', 'cannot add results to someone else''s session');
 select tests.fails(format($$insert into public.random_results (school_id, user_id, session_id, display_name, mode, draw_type, draw_index, pick_index) values (%L, %L, %L, 'x', 'lottery', 'single', 1, 1)$$,
   :'school_a', :bob, :'session_bob'), '23514', 'unknown modes are rejected');
+select tests.ok((select count(*) = 3 from (
+  select 1 from (values ('kart'), ('duck'), ('boat')) as m(mode)
+  where exists (select 1 from pg_constraint where conname = 'random_results_mode_check'
+                 and pg_get_constraintdef(oid) like '%' || m.mode || '%')) as accepted), 'race modes are valid result modes');
 select tests.eq(tests.affected(format('update public.random_results set points = 3 where id = %L', :'result_bob'))::text, '1',
   'a teacher awards stars on their own results');
 select tests.fails(format('update public.random_results set session_id = %L where id = %L', :'session_alice', :'result_bob'),

@@ -422,7 +422,8 @@ function Studio() {
 
   return (
     <div className={cn('flex flex-col gap-4 immersive:min-h-dvh immersive:gap-3 immersive:p-3 sm:immersive:p-4', pinned && 'h-dvh')}>
-      <header className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between immersive:xl:items-center">
+      {/* Eight mode tabs need the full width below the title until very wide screens. */}
+      <header className="flex flex-col gap-3 2xl:flex-row 2xl:items-end 2xl:justify-between immersive:2xl:items-center">
         <div className="immersive:hidden">
           <p className="hud-label text-neon-cyan">Randomizer Studio</p>
           <h1 className="mt-1 text-3xl font-extrabold">สตูดิโอสุ่ม</h1>

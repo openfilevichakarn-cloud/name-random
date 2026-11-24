@@ -6,6 +6,7 @@ import type { DrawController } from '../hooks/useDrawController'
 import { CardStage } from '../stages/card/CardStage'
 import { CountdownStage } from '../stages/countdown/CountdownStage'
 import { GachaStage } from '../stages/gacha/GachaStage'
+import { RaceStage } from '../stages/race/RaceStage'
 import { SlotStage } from '../stages/slot/SlotStage'
 import { TeamStage } from '../stages/team/TeamStage'
 import type { StageMode, StageProps } from '../stages/types'
@@ -99,5 +100,9 @@ export function StudioStage({
       return <CountdownStage key={key} {...props} seconds={countdownSeconds} />
     case 'gacha':
       return <GachaStage key={key} {...props} />
+    case 'kart':
+    case 'duck':
+    case 'boat':
+      return <RaceStage key={key} {...props} theme={mode} />
   }
 }

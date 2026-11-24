@@ -111,6 +111,9 @@
   --animate-shake: shake 0.5s ease-in-out both;
   --animate-led: led 1s steps(2, end) infinite;
   --animate-ring-out: ring-out 1.6s ease-out infinite;
+  --animate-race-bob: race-bob 0.9s ease-in-out infinite;
+  --animate-race-rumble: race-rumble 0.12s linear infinite;
+  --animate-water-flow: water-flow 2.4s linear infinite;
 
   @keyframes float {
     0%,
@@ -175,6 +178,35 @@
     }
     100% {
       opacity: 0.25;
+    }
+  }
+
+  @keyframes race-bob {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-2deg);
+    }
+    50% {
+      transform: translateY(-8%) rotate(2deg);
+    }
+  }
+
+  @keyframes race-rumble {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3%);
+    }
+  }
+
+  @keyframes water-flow {
+    from {
+      background-position-x: 0;
+    }
+    to {
+      background-position-x: -48px;
     }
   }
 

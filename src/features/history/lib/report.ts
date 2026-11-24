@@ -49,6 +49,9 @@ const MODE_NAMES: Record<ResultMode, string> = {
   card: 'Mystery Card',
   countdown: 'Countdown',
   gacha: 'Gacha',
+  kart: 'Go-Kart Race',
+  duck: 'Duck Race',
+  boat: 'Long-tail Boat Race',
   team: 'Team Random',
 }
 
