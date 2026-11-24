@@ -248,6 +248,28 @@ test.describe('random rules', () => {
   })
 })
 
+test.describe('race modes', () => {
+  test('a whole class of 50 races on one track and only the drawn one finishes', async ({ page }) => {
+    // Numbers 1–50 stand in for a class of 50 (runs after the shared test settings were seeded).
+    await page.addInitScript(() => {
+      const stored = JSON.parse(localStorage.getItem('ngsr:settings') ?? '{}') as { state?: { settings?: Record<string, unknown> } }
+      const settings = stored.state?.settings ?? {}
+      settings.rules = { ...(settings.rules as object), numberMin: 1, numberMax: 50 }
+      localStorage.setItem('ngsr:settings', JSON.stringify({ state: { settings }, version: 1 }))
+    })
+    await page.goto('/studio?classroom=none&mode=duck')
+    await expect(page.locator('[data-racer]')).toHaveCount(50)
+
+    const winner = await drawWinner(page, { skip: false })
+    await expect(page.getByTestId('race-leader')).toHaveText(`เข้าเส้นชัย: ${winner}`)
+    // The stage is aria-hidden (the winner is announced by the winner screen): query the element itself.
+    await expect(page.getByTestId('race-standings').locator('li').first()).toContainText(winner)
+    // The crowd never covers the winner screen.
+    await closeReveal(page)
+    await expect(page.getByTestId('winner-reveal')).toHaveCount(0)
+  })
+})
+
 test.describe('safety', () => {
   test('a draw cannot be started twice while one is running', async ({ page }) => {
     await seedClassroom(page, 'ป.6/9', ROSTER)
