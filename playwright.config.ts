@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 4173
 const BASE_URL = `http://localhost:${PORT}`
-/** A second build with accounts enabled, talking to the fake Supabase in e2e/fakeSupabase.ts. */
+/** A second build with accounts and Google Drive enabled, talking to the fakes in e2e/fakeSupabase.ts and e2e/fakeGoogle.ts. */
 const CLOUD_PORT = 4174
 const CLOUD_URL = `http://localhost:${CLOUD_PORT}`
 
@@ -39,17 +39,17 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop',
-      testIgnore: /cloud\.spec\.ts/,
+      testIgnore: /(cloud|drive)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
     },
     {
       name: 'mobile',
-      testIgnore: /cloud\.spec\.ts/,
+      testIgnore: /(cloud|drive)\.spec\.ts/,
       use: { ...devices['Pixel 7'] },
     },
     {
       name: 'cloud',
-      testMatch: /cloud\.spec\.ts/,
+      testMatch: /(cloud|drive)\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, baseURL: CLOUD_URL },
     },
   ],
@@ -68,6 +68,8 @@ export default defineConfig({
       env: {
         VITE_SUPABASE_URL: 'http://localhost:54321',
         VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e_fake_key',
+        // Google Drive sync against e2e/fakeGoogle.ts.
+        VITE_GOOGLE_CLIENT_ID: 'e2e-fake.apps.googleusercontent.com',
       },
     },
   ],

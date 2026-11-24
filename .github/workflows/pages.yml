@@ -34,6 +34,8 @@ jobs:
           # Optional: add these as repository variables to enable teacher accounts.
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Optional: Google OAuth client id for "save to Google Drive" (docs/GOOGLE_DRIVE.md).
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
       # GitHub Pages has no rewrites: serve the app for deep links such as /name-random/studio.
       - run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5

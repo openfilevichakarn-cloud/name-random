@@ -7,11 +7,16 @@ import { defineConfig } from 'vitest/config'
 
 import { contentSecurityPolicy } from './build/csp.ts'
 
+function cspOptions(mode: string) {
+  const env = loadEnv(mode, process.cwd(), 'VITE_')
+  return { supabaseUrl: env.VITE_SUPABASE_URL, google: Boolean(env.VITE_GOOGLE_CLIENT_ID?.trim()) }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
   // GitHub Pages serves the app from /<repository>/; other hosts use the root.
   base: process.env.BASE_PATH ?? '/',
-  plugins: [react(), tailwindcss(), contentSecurityPolicy(loadEnv(mode, process.cwd(), 'VITE_').VITE_SUPABASE_URL)],
+  plugins: [react(), tailwindcss(), contentSecurityPolicy(cspOptions(mode))],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

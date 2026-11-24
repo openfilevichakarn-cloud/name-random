@@ -9,9 +9,17 @@ import { SoundToggle } from '@/components/layout/SoundToggle'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { isSupabaseConfigured } from '@/data/supabase/client'
+import { isDriveConfigured } from '@/features/drive/lib/config'
 import { useUiSounds } from '@/hooks/useUiSounds'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/stores/uiStore'
+
+const DriveStatusButton = lazy(() =>
+  import('@/features/drive/components/DriveStatusButton').then((module) => ({ default: module.DriveStatusButton })),
+)
+const DriveConflictDialog = lazy(() =>
+  import('@/features/drive/components/DriveConflictDialog').then((module) => ({ default: module.DriveConflictDialog })),
+)
 
 const AccountMenu = lazy(() =>
   import('@/features/auth/components/AccountMenu').then((module) => ({ default: module.AccountMenu })),
@@ -37,6 +45,11 @@ export function AppShell() {
           actions={
             <>
               <SoundToggle />
+              {isDriveConfigured ? (
+                <Suspense fallback={null}>
+                  <DriveStatusButton />
+                </Suspense>
+              ) : null}
               {isSupabaseConfigured ? (
                 <Suspense fallback={null}>
                   <AccountMenu />
@@ -66,6 +79,11 @@ export function AppShell() {
         </Suspense>
       </main>
       <Toaster />
+      {isDriveConfigured ? (
+        <Suspense fallback={null}>
+          <DriveConflictDialog />
+        </Suspense>
+      ) : null}
       <ScrollRestoration />
     </TooltipProvider>
   )

@@ -28,6 +28,8 @@
 
 **ข้อมูลและรายงาน**
 
+- **บันทึกลง Google Drive** ของครูอัตโนมัติ ใช้ข้อมูลเดียวกันได้ทุกเครื่อง ([วิธีตั้งค่า](docs/GOOGLE_DRIVE.md))
+
 - จัดการห้องเรียนและนักเรียน, ค้นหา, เลือกกลุ่มย่อย, นำเข้า/ส่งออก Excel และ CSV
 - ประวัติการสุ่มรายครั้งและรายรอบ ตัวกรองครบ ส่งออกรายงาน Excel/CSV
 - Dashboard: สถิติ, กราฟ 7 วัน, Quick Start, กิจกรรมล่าสุด
@@ -88,6 +90,10 @@ npm run dev
 2. Build command: `npm run build` · Build output directory: `dist` (Node อ่านจาก `.nvmrc`)
 3. (ไม่บังคับ) ตั้ง Environment Variables ของ Supabase เช่นเดียวกับ Vercel
 4. `public/_redirects` (SPA fallback) และ `public/_headers` (security headers, cache) ถูก deploy ไปพร้อมกัน
+
+### บันทึกลง Google Drive (ไม่บังคับ)
+
+สร้าง OAuth Client ID ใน Google Cloud แล้วตั้งค่า `VITE_GOOGLE_CLIENT_ID` ตาม [docs/GOOGLE_DRIVE.md](docs/GOOGLE_DRIVE.md)
 
 ### บัญชีครูและคลาวด์ (Supabase, ไม่บังคับ)
 

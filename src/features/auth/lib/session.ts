@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 
-import { getRepository, setRepository } from '@/data'
+import { createLocalRepository, getRepository, setRepository } from '@/data'
 import { LocalRepository } from '@/data/local/localRepository'
 import type { ImportSummary } from '@/data/repository'
 import { getSupabaseClient, isSupabaseConfigured, type AppSupabaseClient } from '@/data/supabase/client'
@@ -35,7 +35,7 @@ async function switchToLocalData(): Promise<void> {
   activeAccount = null
   stopSettingsSync?.()
   stopSettingsSync = null
-  setRepository(new LocalRepository())
+  setRepository(createLocalRepository())
   await reloadStores()
 }
 

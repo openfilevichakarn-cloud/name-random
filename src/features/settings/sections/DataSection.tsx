@@ -11,6 +11,8 @@ import { createDemoStudents, DEMO_CLASSROOM } from '@/data/demo'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { fileTimestamp, formatDateTime } from '@/lib/date'
 import { downloadBlob } from '@/lib/download'
+import { DriveSettings } from '@/features/drive/components/DriveSettings'
+import { isDriveConfigured } from '@/features/drive/lib/config'
 import { useAuthStore } from '@/stores/authStore'
 import { useBattleStore } from '@/stores/battleStore'
 import { useDataStore } from '@/stores/dataStore'
@@ -189,6 +191,12 @@ export function DataSection() {
           ))}
         </dl>
       </SettingGroup>
+
+      {isDriveConfigured ? (
+        <SettingGroup title="Google Drive" description="บันทึกข้อมูลขึ้น Drive ของคุณอัตโนมัติ ใช้ข้อมูลเดียวกันได้ทุกเครื่อง">
+          <DriveSettings cloudMode={cloud !== null} />
+        </SettingGroup>
+      ) : null}
 
       <SettingGroup title="สำรองและกู้คืน" description="ไฟล์สำรองเก็บห้องเรียน นักเรียน ประวัติ และการตั้งค่าทั้งหมดไว้ในไฟล์เดียว">
         <SettingRow label="สำรองข้อมูล" description="ดาวน์โหลดไฟล์ .json เก็บไว้ หรือนำไปใช้กับเครื่องอื่น">

@@ -19,6 +19,7 @@ import { RouterProvider } from 'react-router/dom'
 
 import { router } from './app/router'
 import { isSupabaseConfigured } from './data/supabase/client'
+import { isDriveConfigured } from './features/drive/lib/config'
 import { armAudioUnlock, soundManager } from './lib/audio/soundManager'
 import { applySettingsToDocument, useSettingsStore } from './stores/settingsStore'
 
@@ -32,6 +33,9 @@ useSettingsStore.subscribe((state) => {
 
 // Browsers only allow audio after a user gesture: the audio system is created on the first one.
 armAudioUnlock()
+
+// Google Drive sync of the local data, only when an OAuth client id is configured.
+if (isDriveConfigured) void import('./features/drive/lib/sync').then(({ initDriveSync }) => initDriveSync())
 
 // Accounts and cloud sync, only when a Supabase project is configured. Loaded on demand,
 // so local-only deployments never download the account code.
